@@ -35,6 +35,7 @@ services:
     # Порт не пробрасываем наружу - доступ только через nginx
     environment:
       - NODE_ENV=production
+      - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
     restart: unless-stopped
