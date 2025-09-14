@@ -19,9 +19,13 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Копируем исходный код приложения
 COPY . .
 
+# Создаем директорию для данных и устанавливаем права
+RUN mkdir -p /app/data
+
 # Создаем пользователя для запуска приложения (безопасность)
 RUN useradd --create-home --shell /bin/bash app && \
-    chown -R app:app /app
+    chown -R app:app /app && \
+    chmod 755 /app/data
 USER app
 
 # Открываем порт

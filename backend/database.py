@@ -11,9 +11,18 @@ import os
 DB_PATH = os.getenv("DB_PATH", "./triplan.db")
 
 # Создаем директорию для базы данных, если её нет
-db_dir = os.path.dirname(DB_PATH)
+db_dir = os.path.dirname(os.path.abspath(DB_PATH))
 if db_dir and not os.path.exists(db_dir):
-    os.makedirs(db_dir, exist_ok=True)
+    try:
+        os.makedirs(db_dir, exist_ok=True)
+        print(f"Created database directory: {db_dir}")
+    except Exception as e:
+        print(f"Error creating database directory {db_dir}: {e}")
+        raise
+
+print(f"Database path: {os.path.abspath(DB_PATH)}")
+print(f"Database directory exists: {os.path.exists(db_dir)}")
+print(f"Database directory writable: {os.access(db_dir, os.W_OK) if os.path.exists(db_dir) else False}")
 
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
@@ -100,7 +109,13 @@ class Workout(Base):
 
 # Создание таблиц
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    try:
+        print("Creating database tables...")
+        Base.metadata.create_all(bind=engine)
+        print("Database tables created successfully!")
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+        raise
 
 # Получение сессии БД
 def get_db():
