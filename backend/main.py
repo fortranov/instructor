@@ -1,0 +1,105 @@
+"""
+Главный файл приложения Triplan Backend Service
+Сервис для создания персонализированных планов тренировок
+"""
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
+from database import create_tables, engine
+from api_routes import router
+
+# Создание таблиц при запуске приложения
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    create_tables()
+    yield
+    # Shutdown
+    engine.dispose()
+
+# Создание приложения FastAPI
+app = FastAPI(
+    title="Triplan Backend Service",
+    description="""
+    Сервис для создания персонализированных планов тренировок по бегу, велосипеду, плаванию и триатлону.
+    
+    Основан на методике Джо Фрила и использует принципы периодизации тренировок.
+    
+    ## Основные возможности:
+    
+    * **Создание планов** - Персонализированные планы тренировок с учетом сложности и типа соревнования
+    * **Получение планов** - Просмотр созданных планов и тренировок по датам
+    * **Удаление планов** - Удаление существующих планов пользователей
+    
+    ## Типы соревнований:
+    
+    * **Бег**: 10км, полумарафон, марафон
+    * **Велосипед**: любая дистанция в километрах
+    * **Плавание**: любая дистанция в метрах  
+    * **Триатлон**: спринт, олимпийская дистанция, железная дистанция
+    
+    ## Типы тренировок:
+    
+    * **Длительная** - развитие выносливости
+    * **Интервальная** - развитие скорости и мощности
+    * **Восстанавливающая** - активное восстановление
+    """,
+    version="1.0.0",
+    contact={
+        "name": "Triplan Support",
+        "email": "support@triplan.com",
+    },
+    license_info={
+        "name": "MIT",
+    },
+    lifespan=lifespan
+)
+
+# Настройка CORS для фронтенда
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # В продакшене следует указать конкретные домены
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Подключение маршрутов
+app.include_router(router, prefix="/api/v1")
+
+# Корневой эндпоинт
+@app.get("/")
+async def root():
+    """
+    Корневой эндпоинт сервиса
+    """
+    return {
+        "message": "Добро пожаловать в Triplan Backend Service!",
+        "description": "Сервис для создания персонализированных планов тренировок",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/api/v1/health"
+    }
+
+# Обработчик ошибок
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """
+    Глобальный обработчик исключений
+    """
+    return HTTPException(
+        status_code=500,
+        detail=f"Внутренняя ошибка сервера: {str(exc)}"
+    )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=True,
+        log_level="info"
+    )

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Backend FastAPI сервис для разработки
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: triplan-backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - DB_PATH=/app/data/triplan.db
+    volumes:
+      # Монтируем код для hot reload
+      - ./backend:/app
+      - triplan_data_dev:/app/data
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+    networks:
+      - triplan-network-dev
+
+  # Frontend Next.js приложение для разработки
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: triplan-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    volumes:
+      # Монтируем код для hot reload
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: ["npm", "run", "dev"]
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - triplan-network-dev
+
+# Создаем сеть для взаимодействия сервисов
+networks:
+  triplan-network-dev:
+    driver: bridge
+
+# Создаем volume для данных базы
+volumes:
+  triplan_data_dev:
+    driver: local

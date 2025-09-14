@@ -1,0 +1,154 @@
+# Triplan Backend Service
+
+Сервис для создания персонализированных планов тренировок по бегу, велосипеду, плаванию и триатлону, основанный на методике Джо Фрила.
+
+## Особенности
+
+- ✅ **Персонализированные планы** - учет сложности от 0 до 1000
+- ✅ **Методика Джо Фрила** - научно обоснованные принципы периодизации
+- ✅ **Множественные виды спорта** - бег, велосипед, плавание, триатлон
+- ✅ **Фазы подготовки** - базовая, развивающая, пиковая, снижение нагрузки
+- ✅ **Типы тренировок** - длительные, интервальные, восстанавливающие
+- ✅ **SQLite база данных** - легкое развертывание
+- ✅ **FastAPI** - современный и быстрый веб-фреймворк
+- ✅ **Автодокументация** - Swagger UI
+
+## Установка и запуск
+
+### Вариант 1: Локальная установка
+
+1. **Установите зависимости:**
+```bash
+pip install -r requirements.txt
+```
+
+2. **Запустите сервер:**
+```bash
+python start.py
+# или
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Вариант 2: Docker (рекомендуется)
+
+1. **Сборка и запуск с помощью скриптов:**
+```bash
+# Linux/Mac
+./docker-build.sh    # Сборка образа
+./docker-run.sh      # Запуск контейнера
+
+# Windows
+docker-build.bat     # Сборка образа
+docker-run.bat       # Запуск контейнера
+```
+
+2. **Или используйте Docker Compose:**
+```bash
+docker-compose up --build
+```
+
+3. **Или напрямую через Docker:**
+```bash
+# Сборка
+docker build -t triplan-backend .
+
+# Запуск
+docker run -p 8000:8000 triplan-backend
+```
+
+### Доступ к сервису
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- Health Check: http://localhost:8000/api/v1/health
+
+## Тестирование
+
+**Запуск тестов:**
+```bash
+python test_service.py
+```
+
+**Примеры использования:**
+```bash
+python examples.py
+```
+
+## API Эндпоинты
+
+### Основные эндпоинты
+- `POST /api/v1/plans/create` - Создание плана тренировок
+- `GET /api/v1/plans/{uin}` - Получение плана пользователя
+- `GET /api/v1/plans/{uin}/workouts` - Получение тренировок по датам
+- `DELETE /api/v1/plans/{uin}` - Удаление плана пользователя
+
+### Вспомогательные эндпоинты
+- `GET /api/v1/health` - Проверка работоспособности
+- `GET /api/v1/competition-types` - Список типов соревнований
+- `GET /api/v1/sport-types` - Список видов спорта
+- `GET /api/v1/workout-types` - Список типов тренировок
+
+## Типы соревнований
+
+### Бег
+- `run_10k` - 10 километров
+- `run_half_marathon` - Полумарафон  
+- `run_marathon` - Марафон
+
+### Велосипед
+- `cycling` - Любая дистанция (указывается в км)
+
+### Плавание  
+- `swimming` - Любая дистанция (указывается в метрах)
+
+### Триатлон
+- `triathlon_sprint` - Спринт дистанция
+- `triathlon_olympic` - Олимпийская дистанция
+- `triathlon_ironman` - Железная дистанция
+
+## Пример создания плана
+
+```python
+import requests
+
+plan_data = {
+    "uin": "user123",
+    "complexity": 600,  # 0-1000
+    "competition_date": "2024-06-15",
+    "competition_type": "run_marathon"
+}
+
+response = requests.post("http://localhost:8000/api/v1/plans/create", json=plan_data)
+```
+
+## Структура проекта
+
+```
+backend/
+├── main.py              # Главный файл приложения
+├── database.py          # Модели базы данных
+├── schemas.py           # Pydantic схемы
+├── api_routes.py        # API маршруты
+├── training_tables.py   # Таблицы тренировок по Фрилу
+├── plan_generator.py    # Логика генерации планов
+├── examples.py          # Примеры использования
+├── test_service.py      # Тесты
+├── start.py             # Скрипт быстрого запуска
+├── requirements.txt     # Зависимости
+├── Dockerfile           # Docker образ
+├── docker-compose.yml   # Docker Compose конфигурация
+├── .dockerignore        # Исключения для Docker
+├── docker-build.sh      # Скрипт сборки (Linux/Mac)
+├── docker-run.sh        # Скрипт запуска (Linux/Mac)
+├── docker-build.bat     # Скрипт сборки (Windows)
+├── docker-run.bat       # Скрипт запуска (Windows)
+└── README.md           # Документация
+```
+
+## База данных
+
+Сервис использует SQLite базу данных с тремя основными таблицами:
+- `users` - Пользователи
+- `training_plans` - Планы тренировок  
+- `workouts` - Отдельные тренировки
+
+База данных создается автоматически при первом запуске.
