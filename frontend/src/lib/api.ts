@@ -13,10 +13,8 @@ import {
   WorkoutTypeOption
 } from '@/types/api';
 
-// В продакшене используем относительный путь через nginx, в разработке - прямое подключение
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api/v1'  // Относительный путь для продакшена (через nginx)
-  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1');
+// Всегда используем относительный путь - это работает как в dev, так и в production
+const API_BASE_URL = '/api/v1';
 
 class ApiClient {
   private baseURL: string;
