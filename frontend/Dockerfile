@@ -1,58 +1,28 @@
-# Multi-stage build для Next.js
-FROM node:18-alpine AS base
+# Простой Dockerfile для Next.js
+FROM node:18-alpine
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Установка зависимостей
-FROM base AS deps
 # Копируем файлы package
 COPY package*.json ./
-# Устанавливаем все зависимости (включая devDependencies для сборки)
+
+# Устанавливаем зависимости
 RUN npm ci
 
-# Сборка приложения
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-
-# Копируем файлы конфигурации
-COPY package*.json ./
-COPY next.config.ts ./
-COPY tsconfig.json ./
-COPY tailwind.config.js ./
-COPY postcss.config.mjs ./
-
 # Копируем исходный код
-COPY src ./src
-COPY public ./public
+COPY . .
 
 # Собираем приложение
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN node node_modules/next/dist/bin/next build
 
-# Production stage
-FROM base AS runner
-WORKDIR /app
+# Открываем порт
+EXPOSE 3000
 
+# Устанавливаем переменные окружения
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Создаем пользователя для безопасности
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Копируем public папку (если существует)
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Копируем standalone сборку
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-CMD ["node", "server.js"]
+# Запускаем приложение
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
