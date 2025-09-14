@@ -84,3 +84,8 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = Field(None, description="Email")
     current_password: Optional[str] = Field(None, description="Текущий пароль")
     new_password: Optional[str] = Field(None, min_length=6, description="Новый пароль")
+
+# Схема для обновления даты тренировки
+class WorkoutDateUpdate(BaseModel):
+    workout_id: int = Field(..., description="ID тренировки")
+    new_date: date = Field(..., description="Новая дата тренировки")

@@ -208,3 +208,28 @@ class PlanGenerator:
         self.db.commit()
         
         return True
+    
+    def update_workout_date(self, uin: str, workout_id: int, new_date: date) -> bool:
+        """Обновить дату тренировки"""
+        user = self.db.query(User).filter(User.uin == uin).first()
+        if not user:
+            return False
+        
+        plan = self.db.query(TrainingPlan).filter(TrainingPlan.user_id == user.id).first()
+        if not plan:
+            return False
+        
+        # Найти тренировку, принадлежащую плану пользователя
+        workout = self.db.query(Workout).filter(
+            Workout.id == workout_id,
+            Workout.plan_id == plan.id
+        ).first()
+        
+        if not workout:
+            return False
+        
+        # Обновить дату тренировки
+        workout.date = new_date
+        self.db.commit()
+        
+        return True

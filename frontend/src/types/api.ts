@@ -114,3 +114,8 @@ export interface CompetitionTypesResponse {
 export interface ApiError {
   detail: string;
 }
+
+export interface WorkoutDateUpdate {
+  workout_id: number;
+  new_date: string; // ISO date string (YYYY-MM-DD)
+}

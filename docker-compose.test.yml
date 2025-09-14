@@ -1,0 +1,29 @@
+# Тестовая конфигурация для проверки backend
+
+services:
+  # Backend FastAPI сервис
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: triplan-backend-test
+    ports:
+      - "9000:8000"  # Используем порт 9000 для избежания конфликтов
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - SECRET_KEY=test-secret-key
+      - DB_PATH=/app/data/triplan.db
+    volumes:
+      - triplan_data_test:/app/data
+    restart: unless-stopped
+    networks:
+      - triplan-network-test
+
+networks:
+  triplan-network-test:
+    driver: bridge
+
+volumes:
+  triplan_data_test:
+    driver: local

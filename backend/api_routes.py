@@ -18,7 +18,8 @@ from schemas import (
     UserLogin,
     Token,
     UserResponse,
-    UserUpdate
+    UserUpdate,
+    WorkoutDateUpdate
 )
 from plan_generator import PlanGenerator
 from auth import (
@@ -111,6 +112,30 @@ async def delete_training_plan(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"План тренировок для пользователя {uin} не найден"
         )
+
+@router.put("/plans/{uin}/workouts/update-date", status_code=status.HTTP_200_OK)
+async def update_workout_date(
+    uin: str,
+    workout_update: WorkoutDateUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Обновить дату тренировки.
+    """
+    generator = PlanGenerator(db)
+    success = generator.update_workout_date(
+        uin=uin,
+        workout_id=workout_update.workout_id,
+        new_date=workout_update.new_date
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Тренировка с ID {workout_update.workout_id} не найдена или не принадлежит пользователю {uin}"
+        )
+    
+    return {"message": "Дата тренировки успешно обновлена"}
 
 @router.get("/health")
 async def health_check():

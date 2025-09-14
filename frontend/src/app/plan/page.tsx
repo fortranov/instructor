@@ -86,6 +86,28 @@ export default function PlanPage() {
     }
   };
 
+  const handleWorkoutMove = async (workoutId: number, newDate: string) => {
+    if (!user?.uin) return;
+    
+    try {
+      await apiClient.updateWorkoutDate(user.uin, {
+        workout_id: workoutId,
+        new_date: newDate
+      });
+      
+      // Обновить локальное состояние тренировок
+      setWorkouts(prevWorkouts => 
+        prevWorkouts.map(workout => 
+          workout.id === workoutId 
+            ? { ...workout, date: newDate }
+            : workout
+        )
+      );
+    } catch (err) {
+      throw new Error(getErrorMessage(err));
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -181,6 +203,7 @@ export default function PlanPage() {
             <Calendar
               workouts={workouts}
               onMonthChange={handleMonthChange}
+              onWorkoutMove={handleWorkoutMove}
               loading={loading}
             />
           </>

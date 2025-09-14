@@ -8,15 +8,83 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Workout } from '@/types/api';
 import { formatDuration, getSportIcon, getSportColor, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  useDraggable,
+  useDroppable,
+  closestCenter,
+  UniqueIdentifier,
+} from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 
 interface CalendarProps {
   workouts: Workout[];
   onMonthChange: (startDate: string, endDate: string) => void;
+  onWorkoutMove?: (workoutId: number, newDate: string) => Promise<void>;
   loading?: boolean;
 }
 
-export default function Calendar({ workouts, onMonthChange, loading = false }: CalendarProps) {
+// Компонент перетаскиваемой тренировки
+function DraggableWorkout({ workout, children }: { workout: Workout; children: React.ReactNode }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: `workout-${workout.id}`,
+    data: {
+      workout,
+    },
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="cursor-grab active:cursor-grabbing"
+    >
+      {children}
+    </div>
+  );
+}
+
+// Компонент дропзоны для дня
+function DroppableDay({ day, children }: { day: Date; children: React.ReactNode }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `day-${format(day, 'yyyy-MM-dd')}`,
+    data: {
+      date: format(day, 'yyyy-MM-dd'),
+    },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`
+        min-h-[100px] p-1 border border-gray-200 bg-white transition-colors
+        ${isOver ? 'bg-blue-50 border-blue-300' : ''}
+      `}
+    >
+      {children}
+    </div>
+  );
+}
+
+export default function Calendar({ workouts, onMonthChange, onWorkoutMove, loading = false }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   
   useEffect(() => {
     const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -46,34 +114,67 @@ export default function Calendar({ workouts, onMonthChange, loading = false }: C
     );
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const workout = active.data.current?.workout;
+    if (workout) {
+      setActiveWorkout(workout);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    setActiveWorkout(null);
+    
+    if (!over || !onWorkoutMove) return;
+    
+    const workout = active.data.current?.workout;
+    const newDate = over.data.current?.date;
+    
+    if (workout && newDate && workout.date !== newDate) {
+      try {
+        await onWorkoutMove(workout.id, newDate);
+      } catch (error) {
+        console.error('Ошибка при перемещении тренировки:', error);
+        // Здесь можно добавить уведомление об ошибке
+      }
+    }
+  };
+
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
   return (
-    <div className="space-y-4">
-      {/* Заголовок календаря */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">
-          {format(currentDate, 'LLLL yyyy', { locale: ru })}
-        </h2>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateMonth('prev')}
-            disabled={loading}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigateMonth('next')}
-            disabled={loading}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+    <DndContext
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-4">
+        {/* Заголовок календаря */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">
+            {format(currentDate, 'LLLL yyyy', { locale: ru })}
+          </h2>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth('prev')}
+              disabled={loading}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth('next')}
+              disabled={loading}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* Календарная сетка */}
       <Card>
@@ -98,50 +199,49 @@ export default function Calendar({ workouts, onMonthChange, loading = false }: C
                 const isToday = isSameDay(day, new Date());
 
                 return (
-                  <div
-                    key={index}
-                    className={`
-                      min-h-[100px] p-1 border border-gray-200 bg-white
+                  <DroppableDay key={index} day={day}>
+                    <div className={`
                       ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
                       ${isToday ? 'bg-blue-50 border-blue-200' : ''}
-                    `}
-                  >
-                    <div className={`
-                      text-sm font-medium mb-1
-                      ${isToday ? 'text-blue-600' : ''}
                     `}>
-                      {format(day, 'd')}
+                      <div className={`
+                        text-sm font-medium mb-1
+                        ${isToday ? 'text-blue-600' : ''}
+                      `}>
+                        {format(day, 'd')}
+                      </div>
+                      
+                      <div className="space-y-1">
+                        {dayWorkouts.map((workout, workoutIndex) => (
+                          <DraggableWorkout key={workoutIndex} workout={workout}>
+                            <div
+                              className="text-xs p-1 rounded bg-white border shadow-sm hover:shadow-md transition-shadow"
+                              title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                            >
+                              <div className="flex items-center gap-1 mb-1">
+                                <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
+                                <span className={`
+                                  inline-block w-2 h-2 rounded-full flex-shrink-0
+                                  ${getSportColor(workout.sport_type)}
+                                `}></span>
+                              </div>
+                              
+                              <div className="text-xs text-gray-600 truncate">
+                                {formatDuration(workout.duration_minutes)}
+                              </div>
+                              
+                              <div className={`
+                                text-xs px-1 py-0.5 rounded text-center truncate
+                                ${getWorkoutTypeColor(workout.workout_type)}
+                              `}>
+                                {getWorkoutTypeLabel(workout.workout_type)}
+                              </div>
+                            </div>
+                          </DraggableWorkout>
+                        ))}
+                      </div>
                     </div>
-                    
-                    <div className="space-y-1">
-                      {dayWorkouts.map((workout, workoutIndex) => (
-                        <div
-                          key={workoutIndex}
-                          className="text-xs p-1 rounded bg-white border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                          title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
-                        >
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
-                            <span className={`
-                              inline-block w-2 h-2 rounded-full flex-shrink-0
-                              ${getSportColor(workout.sport_type)}
-                            `}></span>
-                          </div>
-                          
-                          <div className="text-xs text-gray-600 truncate">
-                            {formatDuration(workout.duration_minutes)}
-                          </div>
-                          
-                          <div className={`
-                            text-xs px-1 py-0.5 rounded text-center truncate
-                            ${getWorkoutTypeColor(workout.workout_type)}
-                          `}>
-                            {getWorkoutTypeLabel(workout.workout_type)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  </DroppableDay>
                 );
               })}
             </div>
@@ -190,8 +290,43 @@ export default function Calendar({ workouts, onMonthChange, loading = false }: C
               </div>
             </div>
           </div>
+          
+          {onWorkoutMove && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💡 Вы можете перетаскивать тренировки на другие дни для изменения даты
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+
+      {/* DragOverlay для отображения перетаскиваемого элемента */}
+      <DragOverlay>
+        {activeWorkout ? (
+          <div className="text-xs p-1 rounded bg-white border shadow-lg opacity-90">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-sm">{getSportIcon(activeWorkout.sport_type)}</span>
+              <span className={`
+                inline-block w-2 h-2 rounded-full flex-shrink-0
+                ${getSportColor(activeWorkout.sport_type)}
+              `}></span>
+            </div>
+            
+            <div className="text-xs text-gray-600 truncate">
+              {formatDuration(activeWorkout.duration_minutes)}
+            </div>
+            
+            <div className={`
+              text-xs px-1 py-0.5 rounded text-center truncate
+              ${getWorkoutTypeColor(activeWorkout.workout_type)}
+            `}>
+              {getWorkoutTypeLabel(activeWorkout.workout_type)}
+            </div>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

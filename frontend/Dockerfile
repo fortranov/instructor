@@ -1,5 +1,5 @@
-# Простой Dockerfile для Next.js
-FROM node:18-alpine
+# Multi-stage build для Next.js
+FROM node:18-alpine AS base
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -8,21 +8,37 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm ci
+RUN npm ci --only=production
 
 # Копируем исходный код
 COPY . .
 
 # Собираем приложение
-RUN node node_modules/next/dist/bin/next build
+RUN npm run build
 
-# Открываем порт
-EXPOSE 3000
+# Production stage
+FROM node:18-alpine AS runner
 
-# Устанавливаем переменные окружения
+WORKDIR /app
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Запускаем приложение
-CMD ["node", "node_modules/next/dist/bin/next", "start"]
+# Создаем пользователя для безопасности
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Копируем необходимые файлы из build stage
+COPY --from=base /app/public ./public
+COPY --from=base /app/.next/standalone ./
+COPY --from=base /app/.next/static ./.next/static
+
+# Меняем владельца файлов
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]

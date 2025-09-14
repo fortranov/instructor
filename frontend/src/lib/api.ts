@@ -10,7 +10,8 @@ import {
   WorkoutsByDateResponse,
   CompetitionTypesResponse,
   SportTypeOption,
-  WorkoutTypeOption
+  WorkoutTypeOption,
+  WorkoutDateUpdate
 } from '@/types/api';
 
 // Всегда используем относительный путь - это работает как в dev, так и в production
@@ -110,6 +111,10 @@ class ApiClient {
 
   async deleteTrainingPlan(uin: string): Promise<void> {
     return this.request<void>('DELETE', `/plans/${uin}`);
+  }
+
+  async updateWorkoutDate(uin: string, workoutUpdate: WorkoutDateUpdate): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', `/plans/${uin}/workouts/update-date`, workoutUpdate);
   }
 
   // Методы получения справочных данных
