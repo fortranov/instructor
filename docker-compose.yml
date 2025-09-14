@@ -35,7 +35,6 @@ services:
     # Порт не пробрасываем наружу - доступ только через nginx
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://backend:8000/api/v1
     depends_on:
       - backend
     restart: unless-stopped
