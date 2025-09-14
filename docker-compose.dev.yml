@@ -1,4 +1,4 @@
-version: '3.8'
+# Docker Compose для разработки Triplan
 
 services:
   # Backend FastAPI сервис для разработки
