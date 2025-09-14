@@ -10,6 +10,7 @@ help:
 	@echo "  make down        - Stop all services"
 	@echo "  make logs        - Show logs for all services"
 	@echo "  make clean       - Remove containers, networks, and volumes"
+	@echo "  make rebuild     - Rebuild all images from scratch"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev-up      - Start services in development mode"
@@ -41,6 +42,12 @@ logs:
 clean:
 	docker-compose down -v --rmi all --remove-orphans
 	docker system prune -f
+
+# Rebuild everything from scratch
+rebuild:
+	docker-compose down --rmi all
+	docker-compose build --no-cache
+	docker-compose up -d
 
 # Development commands
 dev-up:

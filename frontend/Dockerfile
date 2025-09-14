@@ -1,5 +1,5 @@
 # Используем официальный Node.js образ
-FROM node:18-alpine AS base
+FROM node:18-alpine AS deps
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -8,9 +8,11 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm ci --only=production
+RUN npm ci
 
-# Копируем исходный код
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Собираем приложение
@@ -27,9 +29,9 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Копируем необходимые файлы из сборочного образа
-COPY --from=base /app/public ./public
-COPY --from=base --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=base --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
