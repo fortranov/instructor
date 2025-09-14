@@ -7,8 +7,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: triplan-backend
-    ports:
-      - "8000:8000"
+    # Порт не пробрасываем наружу - доступ только через nginx
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
@@ -33,8 +32,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: triplan-frontend
-    ports:
-      - "3000:3000"
+    # Порт не пробрасываем наружу - доступ только через nginx
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://backend:8000/api/v1
@@ -44,7 +42,7 @@ services:
     networks:
       - triplan-network
 
-  # Nginx reverse proxy (опционально для продакшена)
+  # Nginx reverse proxy для продакшена
   nginx:
     image: nginx:alpine
     container_name: triplan-nginx
@@ -60,8 +58,6 @@ services:
     restart: unless-stopped
     networks:
       - triplan-network
-    profiles:
-      - production
 
 # Создаем сеть для взаимодействия сервисов
 networks:
