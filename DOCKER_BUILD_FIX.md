@@ -15,6 +15,7 @@ failed to solve: failed to compute cache key: failed to calculate checksum of re
 
 ### 2. Улучшен Dockerfile
 - Разделен на отдельные стадии: `deps`, `builder`, `runner`
+- **Явное копирование файлов** вместо `COPY . .` для избежания проблем с кэшем
 - Правильное копирование зависимостей и файлов
 - Добавлен `--chown=nextjs:nodejs` для правильных прав доступа
 

@@ -15,7 +15,17 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+
+# Копируем файлы конфигурации
+COPY package*.json ./
+COPY next.config.ts ./
+COPY tsconfig.json ./
+COPY tailwind.config.js ./
+COPY postcss.config.mjs ./
+
+# Копируем исходный код
+COPY src ./src
+COPY public ./public
 
 # Собираем приложение
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -34,7 +44,7 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Копируем public папку
+# Копируем public папку (если существует)
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Копируем standalone сборку
