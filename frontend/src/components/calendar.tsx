@@ -28,7 +28,7 @@ interface CalendarProps {
 }
 
 // Компонент перетаскиваемой тренировки
-function DraggableWorkout({ workout, children }: { workout: Workout; children: (props: { listeners: Record<string, any> | undefined; attributes: Record<string, any> }) => React.ReactNode }) {
+function DraggableWorkout({ workout, children }: { workout: Workout; children: (props: { listeners: Record<string, (event: React.MouseEvent | React.TouchEvent) => void> | undefined; attributes: Record<string, string | boolean | undefined> }) => React.ReactNode }) {
   const {
     attributes,
     listeners,
