@@ -51,11 +51,22 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: R
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
       {...attributes}
       className="cursor-grab active:cursor-grabbing"
     >
-      {children}
+      <div 
+        {...listeners} 
+        className="h-full"
+        onMouseDown={(e) => {
+          // Не начинать drag если клик по элементу с data-no-drag
+          if (e.target instanceof HTMLElement && e.target.closest('[data-no-drag="true"]')) {
+            e.preventDefault();
+            return;
+          }
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -287,14 +298,24 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                       console.log('Toggle clicked for workout:', workout.id, 'current status:', workout.is_completed);
                                       handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
                                     }}
+                                    onMouseDown={(e) => {
+                                      e.stopPropagation();
+                                      console.log('Mouse down on toggle button');
+                                    }}
+                                    onMouseUp={(e) => {
+                                      e.stopPropagation();
+                                      console.log('Mouse up on toggle button');
+                                    }}
                                     className={`
-                                      absolute top-1 right-1 w-4 h-4 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-10
+                                      absolute top-1 right-1 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
                                       ${workout.is_completed 
                                         ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
                                         : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
                                       }
                                     `}
                                     title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
+                                    style={{ pointerEvents: 'auto' }}
+                                    data-no-drag="true"
                                   >
                                     {workout.is_completed && '✓'}
                                   </button>
