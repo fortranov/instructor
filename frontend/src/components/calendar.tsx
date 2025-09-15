@@ -51,23 +51,8 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: R
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      className="cursor-grab active:cursor-grabbing"
     >
-      <div 
-        {...listeners}
-        className="h-full"
-        onMouseDown={(e) => {
-          // Не начинать drag если клик по кнопке галочки
-          if (e.target instanceof HTMLElement && e.target.closest('button')) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 }
@@ -306,23 +291,30 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                     {workout.is_completed && '✓'}
                                   </button>
 
-                                  <div className="flex items-center gap-1 mb-1 pr-5">
-                                    <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
-                                    <span className={`
-                                      inline-block w-2 h-2 rounded-full flex-shrink-0
-                                      ${getSportColor(workout.sport_type)}
-                                    `}></span>
-                                  </div>
-                                  
-                                  <div className="text-xs text-gray-600 truncate">
-                                    {formatDuration(workout.duration_minutes)}
-                                  </div>
-                                  
-                                  <div className={`
-                                    text-xs px-1 py-0.5 rounded text-center truncate
-                                    ${getWorkoutTypeColor(workout.workout_type)}
-                                  `}>
-                                    {getWorkoutTypeLabel(workout.workout_type)}
+                                  {/* Drag область - только для содержимого карточки */}
+                                  <div 
+                                    className="cursor-grab active:cursor-grabbing"
+                                    {...listeners}
+                                    {...attributes}
+                                  >
+                                    <div className="flex items-center gap-1 mb-1 pr-5">
+                                      <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
+                                      <span className={`
+                                        inline-block w-2 h-2 rounded-full flex-shrink-0
+                                        ${getSportColor(workout.sport_type)}
+                                      `}></span>
+                                    </div>
+                                    
+                                    <div className="text-xs text-gray-600 truncate">
+                                      {formatDuration(workout.duration_minutes)}
+                                    </div>
+                                    
+                                    <div className={`
+                                      text-xs px-1 py-0.5 rounded text-center truncate
+                                      ${getWorkoutTypeColor(workout.workout_type)}
+                                    `}>
+                                      {getWorkoutTypeLabel(workout.workout_type)}
+                                    </div>
                                   </div>
                                 </div>
                               </DraggableWorkout>
