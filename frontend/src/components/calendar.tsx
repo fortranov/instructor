@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { ru } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Workout } from '@/types/api';
+import { Workout, SportType } from '@/types/api';
 import { formatDuration, getSportIcon, getSportColor, getSportLabel, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
@@ -133,7 +133,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
     });
     
     return Array.from(summary.entries()).map(([sportType, totalMinutes]) => ({
-      sportType: sportType as string,
+      sportType: sportType as SportType,
       totalMinutes
     }));
   };
