@@ -16,8 +16,6 @@ import {
   useDraggable,
   useDroppable,
   closestCenter,
-  SyntheticListenerMap,
-  DraggableAttributes,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -30,7 +28,7 @@ interface CalendarProps {
 }
 
 // Компонент перетаскиваемой тренировки
-function DraggableWorkout({ workout, children }: { workout: Workout; children: (props: { listeners: SyntheticListenerMap | undefined; attributes: DraggableAttributes }) => React.ReactNode }) {
+function DraggableWorkout({ workout, children }: { workout: Workout; children: (props: { listeners: Record<string, any> | undefined; attributes: Record<string, any> }) => React.ReactNode }) {
   const {
     attributes,
     listeners,
