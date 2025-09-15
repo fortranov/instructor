@@ -55,23 +55,14 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: R
       className="cursor-grab active:cursor-grabbing"
     >
       <div 
+        {...listeners}
         className="h-full"
         onMouseDown={(e) => {
-          // Начинать drag только если клик НЕ по кнопке галочки
+          // Не начинать drag если клик по кнопке галочки
           if (e.target instanceof HTMLElement && e.target.closest('button')) {
             e.preventDefault();
             e.stopPropagation();
             return false;
-          }
-          
-          // Применяем drag listeners только для не-кнопочных элементов
-          if (listeners) {
-            Object.keys(listeners).forEach(key => {
-              const listener = listeners[key];
-              if (listener && typeof listener === 'function') {
-                listener(e);
-              }
-            });
           }
         }}
       >
