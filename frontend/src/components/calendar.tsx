@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, getWeek, isSameWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Workout } from '@/types/api';
-import { formatDuration, getSportIcon, getSportColor, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
+import { formatDuration, getSportIcon, getSportColor, getSportLabel, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   DndContext,
@@ -102,10 +102,40 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, loadi
     end: calendarEnd,
   });
 
+  // Группируем дни по неделям
+  const weekRows = [];
+  for (let i = 0; i < calendarDays.length; i += 7) {
+    weekRows.push(calendarDays.slice(i, i + 7));
+  }
+
   const getWorkoutsForDay = (day: Date) => {
     return workouts.filter(workout => 
       isSameDay(new Date(workout.date), day)
     );
+  };
+
+  // Функция для получения тренировок недели
+  const getWorkoutsForWeek = (day: Date) => {
+    return workouts.filter(workout => 
+      isSameWeek(new Date(workout.date), day, { weekStartsOn: 1 })
+    );
+  };
+
+  // Функция для группировки тренировок по видам спорта с суммированием времени
+  const getWeeklySportSummary = (day: Date) => {
+    const weekWorkouts = getWorkoutsForWeek(day);
+    const summary = new Map<string, number>();
+    
+    weekWorkouts.forEach(workout => {
+      const sportType = workout.sport_type;
+      const currentTime = summary.get(sportType) || 0;
+      summary.set(sportType, currentTime + workout.duration_minutes);
+    });
+    
+    return Array.from(summary.entries()).map(([sportType, totalMinutes]) => ({
+      sportType: sportType as any,
+      totalMinutes
+    }));
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -184,66 +214,98 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, loadi
               <div className="text-gray-500">Загрузка тренировок...</div>
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-8 gap-1">
               {/* Заголовки дней недели */}
               {weekDays.map(day => (
                 <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
                   {day}
                 </div>
               ))}
+              {/* Заголовок колонки суммы */}
+              <div className="p-2 text-center text-sm font-medium text-gray-500">
+                Итого за неделю
+              </div>
 
-              {/* Дни месяца */}
-              {calendarDays.map((day, index) => {
-                const dayWorkouts = getWorkoutsForDay(day);
-                const isCurrentMonth = isSameMonth(day, currentDate);
-                const isToday = isSameDay(day, new Date());
+              {/* Строки недель */}
+              {weekRows.map((weekDays, weekIndex) => (
+                <>
+                  {/* Дни недели */}
+                  {weekDays.map((day, dayIndex) => {
+                    const dayWorkouts = getWorkoutsForDay(day);
+                    const isCurrentMonth = isSameMonth(day, currentDate);
+                    const isToday = isSameDay(day, new Date());
 
-                return (
-                  <DroppableDay key={index} day={day}>
-                    <div className={`
-                      ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
-                      ${isToday ? 'bg-blue-50 border-blue-200' : ''}
-                    `}>
-                      <div className={`
-                        text-sm font-medium mb-1
-                        ${isToday ? 'text-blue-600' : ''}
-                      `}>
-                        {format(day, 'd')}
-                      </div>
-                      
-                      <div className="space-y-1">
-                        {dayWorkouts.map((workout, workoutIndex) => (
-                          <DraggableWorkout key={workoutIndex} workout={workout}>
-                            <div
-                              className="text-xs p-1 rounded bg-white border shadow-sm hover:shadow-md transition-shadow"
-                              title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
-                            >
-                              <div className="flex items-center gap-1 mb-1">
-                                <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
-                                <span className={`
-                                  inline-block w-2 h-2 rounded-full flex-shrink-0
-                                  ${getSportColor(workout.sport_type)}
-                                `}></span>
-                              </div>
-                              
-                              <div className="text-xs text-gray-600 truncate">
-                                {formatDuration(workout.duration_minutes)}
-                              </div>
-                              
-                              <div className={`
-                                text-xs px-1 py-0.5 rounded text-center truncate
-                                ${getWorkoutTypeColor(workout.workout_type)}
-                              `}>
-                                {getWorkoutTypeLabel(workout.workout_type)}
-                              </div>
-                            </div>
-                          </DraggableWorkout>
-                        ))}
-                      </div>
+                    return (
+                      <DroppableDay key={`${weekIndex}-${dayIndex}`} day={day}>
+                        <div className={`
+                          ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
+                          ${isToday ? 'bg-blue-50 border-blue-200' : ''}
+                        `}>
+                          <div className={`
+                            text-sm font-medium mb-1
+                            ${isToday ? 'text-blue-600' : ''}
+                          `}>
+                            {format(day, 'd')}
+                          </div>
+                          
+                          <div className="space-y-1">
+                            {dayWorkouts.map((workout, workoutIndex) => (
+                              <DraggableWorkout key={workoutIndex} workout={workout}>
+                                <div
+                                  className="text-xs p-1 rounded bg-white border shadow-sm hover:shadow-md transition-shadow"
+                                  title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                                >
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
+                                    <span className={`
+                                      inline-block w-2 h-2 rounded-full flex-shrink-0
+                                      ${getSportColor(workout.sport_type)}
+                                    `}></span>
+                                  </div>
+                                  
+                                  <div className="text-xs text-gray-600 truncate">
+                                    {formatDuration(workout.duration_minutes)}
+                                  </div>
+                                  
+                                  <div className={`
+                                    text-xs px-1 py-0.5 rounded text-center truncate
+                                    ${getWorkoutTypeColor(workout.workout_type)}
+                                  `}>
+                                    {getWorkoutTypeLabel(workout.workout_type)}
+                                  </div>
+                                </div>
+                              </DraggableWorkout>
+                            ))}
+                          </div>
+                        </div>
+                      </DroppableDay>
+                    );
+                  })}
+                  
+                  {/* Колонка с суммарным временем за неделю */}
+                  <div key={`summary-${weekIndex}`} className="min-h-[100px] p-2 border border-gray-200 bg-gray-50">
+                    <div className="space-y-2">
+                      {getWeeklySportSummary(weekDays[0]).map(({ sportType, totalMinutes }) => (
+                        <div key={sportType} className="text-xs">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-sm">{getSportIcon(sportType)}</span>
+                            <span className={`
+                              inline-block w-2 h-2 rounded-full flex-shrink-0
+                              ${getSportColor(sportType)}
+                            `}></span>
+                          </div>
+                          <div className="text-xs text-gray-600 mb-1">
+                            {getSportLabel(sportType)}
+                          </div>
+                          <div className="font-medium text-gray-700">
+                            {formatDuration(totalMinutes)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </DroppableDay>
-                );
-              })}
+                  </div>
+                </>
+              ))}
             </div>
           )}
         </CardContent>

@@ -79,6 +79,19 @@ export const getSportColor = (sportType: SportType): string => {
   }
 };
 
+export const getSportLabel = (sportType: SportType): string => {
+  switch (sportType) {
+    case SportType.RUNNING:
+      return 'Бег';
+    case SportType.CYCLING:
+      return 'Велосипед';
+    case SportType.SWIMMING:
+      return 'Плавание';
+    default:
+      return sportType;
+  }
+};
+
 export const getWorkoutTypeLabel = (workoutType: WorkoutType): string => {
   switch (workoutType) {
     case WorkoutType.ENDURANCE:
