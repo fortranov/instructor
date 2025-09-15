@@ -1,11 +1,5 @@
-"""
-Схемы Pydantic без циклических ссылок (версия 2)
-Используем forward references и отложенную инициализацию
-"""
-
-from __future__ import annotations
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional
 from datetime import date, datetime
 from database import SportType, WorkoutType, CompetitionType
 
@@ -17,7 +11,7 @@ class TrainingPlanCreate(BaseModel):
     competition_type: CompetitionType = Field(..., description="Тип соревнования")
     competition_distance: Optional[float] = Field(None, description="Дистанция для велосипеда (км) или плавания (м)")
 
-# Схема тренировки (базовая, без ссылок)
+# Схема тренировки
 class WorkoutResponse(BaseModel):
     id: int
     date: date
@@ -29,7 +23,7 @@ class WorkoutResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Схема плана тренировок (базовая, без workouts)
+# Схема плана тренировок (без workouts для избежания циклических ссылок)
 class TrainingPlanResponse(BaseModel):
     id: int
     complexity: int
@@ -88,25 +82,33 @@ class WorkoutDateUpdate(BaseModel):
     workout_id: int = Field(..., description="ID тренировки")
     new_date: date = Field(..., description="Новая дата тренировки")
 
-# Простые схемы для ответов (без вложенных коллекций)
-class SimpleWorkoutsByDateResponse(BaseModel):
-    """Простой ответ с тренировками без вложенных объектов"""
-    uin: str
-    workouts: List[dict]  # Используем dict вместо WorkoutResponse
-    
-    class Config:
-        from_attributes = True
+# Схемы с коллекциями создаем отдельно, чтобы избежать циклических ссылок
+# Эти схемы создаются динамически в runtime, когда нужны
 
-class SimpleTrainingPlanWithWorkoutsResponse(BaseModel):
-    """Простой план с тренировками без вложенных объектов"""
-    id: int
-    complexity: int
-    competition_date: date
-    competition_type: CompetitionType
-    competition_distance: Optional[float]
-    created_at: datetime
-    updated_at: datetime
-    workouts: List[dict]  # Используем dict вместо WorkoutResponse
+def create_training_plan_with_workouts_response():
+    """Создает схему плана с тренировками динамически"""
+    class TrainingPlanWithWorkoutsResponse(BaseModel):
+        id: int
+        complexity: int
+        competition_date: date
+        competition_type: CompetitionType
+        competition_distance: Optional[float]
+        created_at: datetime
+        updated_at: datetime
+        workouts: List[WorkoutResponse]
+        
+        class Config:
+            from_attributes = True
     
-    class Config:
-        from_attributes = True
+    return TrainingPlanWithWorkoutsResponse
+
+def create_workouts_by_date_response():
+    """Создает схему ответа с тренировками по датам динамически"""
+    class WorkoutsByDateResponse(BaseModel):
+        uin: str
+        workouts: List[WorkoutResponse]
+        
+        class Config:
+            from_attributes = True
+    
+    return WorkoutsByDateResponse

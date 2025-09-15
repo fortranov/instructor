@@ -11,6 +11,7 @@ from database import get_db, User
 from schemas import (
     TrainingPlanCreate, 
     TrainingPlanResponse, 
+    SimpleTrainingPlanWithWorkoutsResponse,
     WorkoutsByDateRequest,
     UserRegistration,
     UserLogin,
@@ -32,7 +33,7 @@ from auth import (
 
 router = APIRouter()
 
-@router.post("/plans/create", response_model=TrainingPlanResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/plans/create", status_code=status.HTTP_201_CREATED)
 async def create_training_plan(
     plan_data: TrainingPlanCreate,
     db: Session = Depends(get_db)

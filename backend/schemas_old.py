@@ -1,11 +1,5 @@
-"""
-Схемы Pydantic без циклических ссылок (версия 2)
-Используем forward references и отложенную инициализацию
-"""
-
-from __future__ import annotations
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional
 from datetime import date, datetime
 from database import SportType, WorkoutType, CompetitionType
 
@@ -17,7 +11,7 @@ class TrainingPlanCreate(BaseModel):
     competition_type: CompetitionType = Field(..., description="Тип соревнования")
     competition_distance: Optional[float] = Field(None, description="Дистанция для велосипеда (км) или плавания (м)")
 
-# Схема тренировки (базовая, без ссылок)
+# Схема тренировки
 class WorkoutResponse(BaseModel):
     id: int
     date: date
@@ -29,7 +23,7 @@ class WorkoutResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Схема плана тренировок (базовая, без workouts)
+# Схема плана тренировок (без workouts для избежания циклических ссылок)
 class TrainingPlanResponse(BaseModel):
     id: int
     complexity: int
@@ -42,11 +36,33 @@ class TrainingPlanResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Схема плана тренировок с тренировками (для случаев, когда нужны workouts)
+class TrainingPlanWithWorkoutsResponse(BaseModel):
+    id: int
+    complexity: int
+    competition_date: date
+    competition_type: CompetitionType
+    competition_distance: Optional[float]
+    created_at: datetime
+    updated_at: datetime
+    workouts: List[WorkoutResponse]
+    
+    class Config:
+        from_attributes = True
+
 # Схема для получения тренировок по датам
 class WorkoutsByDateRequest(BaseModel):
     uin: str = Field(..., description="Уникальный идентификатор пользователя")
     start_date: date = Field(..., description="Начальная дата")
     end_date: date = Field(..., description="Конечная дата")
+
+# Схема ответа с тренировками по датам
+class WorkoutsByDateResponse(BaseModel):
+    uin: str
+    workouts: List[WorkoutResponse]
+    
+    class Config:
+        from_attributes = True
 
 # Схемы для аутентификации
 class UserRegistration(BaseModel):
@@ -88,25 +104,17 @@ class WorkoutDateUpdate(BaseModel):
     workout_id: int = Field(..., description="ID тренировки")
     new_date: date = Field(..., description="Новая дата тренировки")
 
-# Простые схемы для ответов (без вложенных коллекций)
-class SimpleWorkoutsByDateResponse(BaseModel):
-    """Простой ответ с тренировками без вложенных объектов"""
-    uin: str
-    workouts: List[dict]  # Используем dict вместо WorkoutResponse
-    
-    class Config:
-        from_attributes = True
+# Схемы для отметок выполнения тренировок
+class WorkoutCompletionMarkCreate(BaseModel):
+    workout_id: int = Field(..., description="ID тренировки")
+    date: date = Field(..., description="Дата выполнения тренировки")
 
-class SimpleTrainingPlanWithWorkoutsResponse(BaseModel):
-    """Простой план с тренировками без вложенных объектов"""
+class WorkoutCompletionMarkResponse(BaseModel):
     id: int
-    complexity: int
-    competition_date: date
-    competition_type: CompetitionType
-    competition_distance: Optional[float]
-    created_at: datetime
-    updated_at: datetime
-    workouts: List[dict]  # Используем dict вместо WorkoutResponse
+    workout_id: int
+    user_id: int
+    date: date
+    completed_at: datetime
     
     class Config:
         from_attributes = True

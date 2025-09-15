@@ -10,6 +10,7 @@ from datetime import date
 
 from database import get_db, User, Workout, WorkoutCompletionMark
 from plan_generator import PlanGenerator
+from schemas import SimpleWorkoutsByDateResponse
 
 # Создаем отдельный роутер для workout endpoints
 workouts_router = APIRouter()

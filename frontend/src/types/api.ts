@@ -122,7 +122,6 @@ export interface WorkoutDateUpdate {
 }
 
 export interface WorkoutCompletionMarkCreate {
-  workout_id: number;
   date: string; // ISO date string (YYYY-MM-DD)
 }
 

@@ -115,7 +115,6 @@ export default function PlanPage() {
       if (isCompleted) {
         // Отметить как выполненную
         await apiClient.markWorkoutCompleted(workoutId, {
-          workout_id: workoutId,
           date: date
         });
       } else {

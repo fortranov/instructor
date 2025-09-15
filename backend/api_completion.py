@@ -10,6 +10,9 @@ from typing import Dict, Any
 
 from database import get_db, User, Workout, WorkoutCompletionMark
 from auth import get_current_active_user
+from pydantic import BaseModel, Field
+
+# Используем простые типы данных вместо Pydantic схем для избежания циклических ссылок
 
 # Создаем отдельный роутер для completion endpoints
 completion_router = APIRouter()
@@ -17,7 +20,7 @@ completion_router = APIRouter()
 @completion_router.post("/workouts/{workout_id}/completion", status_code=status.HTTP_201_CREATED)
 async def mark_workout_completed(
     workout_id: int,
-    completion_data: Dict[str, Any],  # Используем простой dict вместо Pydantic
+    completion_data: Dict[str, Any],  # Используем простой dict
     current_user = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -103,7 +106,7 @@ async def unmark_workout_completed(
     db.delete(completion_mark)
     db.commit()
 
-@completion_router.get("/workouts/{workout_id}/completion")
+@completion_router.get("/workouts/{workout_id}/completion", response_model=Dict[str, Any])
 async def get_workout_completion(
     workout_id: int,
     current_user = Depends(get_current_active_user),
