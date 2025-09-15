@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, getWeek, isSameWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, isSameWeek } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +16,6 @@ import {
   useDraggable,
   useDroppable,
   closestCenter,
-  UniqueIdentifier,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -134,7 +133,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
     });
     
     return Array.from(summary.entries()).map(([sportType, totalMinutes]) => ({
-      sportType: sportType as any,
+      sportType: sportType as string,
       totalMinutes
     }));
   };
