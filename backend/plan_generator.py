@@ -92,8 +92,8 @@ class PlanGenerator:
             primary_sport = sport_types[0]
             weekly_volume = self.training_tables.get_weekly_volume(primary_sport, plan.complexity)
             
-            # Скорректировать объем в зависимости от фазы
-            volume_multiplier = self._get_volume_multiplier(phase, weeks_remaining)
+            # Скорректировать объем в зависимости от фазы и недельной периодизации
+            volume_multiplier = self._get_volume_multiplier(phase, weeks_remaining, week_count)
             adjusted_volume = int(weekly_volume * volume_multiplier)
             
             # Распределить тренировки на неделю
@@ -113,8 +113,24 @@ class PlanGenerator:
         
         return workouts
     
-    def _get_volume_multiplier(self, phase: str, weeks_remaining: int) -> float:
-        """Получить множитель объема тренировок в зависимости от фазы"""
+    def _get_volume_multiplier(self, phase: str, weeks_remaining: int, week_number: int = None) -> float:
+        """
+        Получить множитель объема тренировок в зависимости от фазы и недельной периодизации
+        
+        Реализует 4-недельную периодизацию объема тренировок:
+        - Неделя 1: базовый объем (1.0)
+        - Неделя 2: +25% объема (1.25) 
+        - Неделя 3: +37% объема (1.37)
+        - Неделя 4: -25% объема (0.75) - разгрузочная неделя
+        
+        Args:
+            phase: Фаза тренировки ('base', 'build', 'peak', 'taper')
+            weeks_remaining: Количество недель до соревнования
+            week_number: Номер недели в плане (для периодизации)
+            
+        Returns:
+            float: Множитель для корректировки базового объема тренировок
+        """
         multipliers = {
             'base': 1.0,      # Полный объем в базовой фазе
             'build': 1.1,     # Увеличенный объем в развивающей фазе
@@ -129,6 +145,21 @@ class PlanGenerator:
             return base_multiplier * 0.5  # Очень легкая неделя перед соревнованием
         elif weeks_remaining == 2:
             return base_multiplier * 0.7  # Легкая неделя
+        
+        # 4-недельная периодизация объема тренировок
+        if week_number is not None:
+            week_in_cycle = (week_number - 1) % 4 + 1  # Определяем неделю в 4-недельном цикле (1-4)
+            
+            # Коэффициенты для каждой недели цикла
+            cycle_multipliers = {
+                1: 1.0,     # Неделя 1 - базовый объем
+                2: 1.25,    # Неделя 2 - +25% объема
+                3: 1.37,    # Неделя 3 - +37% объема  
+                4: 0.75     # Неделя 4 - -25% объема (разгрузочная)
+            }
+            
+            cycle_multiplier = cycle_multipliers.get(week_in_cycle, 1.0)
+            return base_multiplier * cycle_multiplier
         
         return base_multiplier
     
