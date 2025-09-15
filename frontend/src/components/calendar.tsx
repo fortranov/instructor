@@ -29,7 +29,7 @@ interface CalendarProps {
 
 // Компонент перетаскиваемой тренировки
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-function DraggableWorkout({ workout, children }: { workout: Workout; children: (props: { listeners: Record<string, Function> | undefined; attributes: Record<string, string | boolean | undefined> }) => React.ReactNode }) {
+function DraggableWorkout({ workout, children }: { workout: Workout; children: (props: { listeners: Record<string, Function> | undefined; attributes: Record<string, unknown> }) => React.ReactNode }) {
   const {
     attributes,
     listeners,
