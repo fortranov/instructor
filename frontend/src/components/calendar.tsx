@@ -28,7 +28,7 @@ interface CalendarProps {
 }
 
 // Компонент перетаскиваемой тренировки
-function DraggableWorkout({ workout, children }: { workout: Workout; children: React.ReactNode }) {
+function DraggableWorkout({ workout, children }: { workout: Workout; children: (props: { listeners: any; attributes: any }) => React.ReactNode }) {
   const {
     attributes,
     listeners,
@@ -52,7 +52,7 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: R
       ref={setNodeRef}
       style={style}
     >
-      {children}
+      {children({ listeners, attributes })}
     </div>
   );
 }
@@ -261,62 +261,64 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                           <div className="space-y-1">
                             {dayWorkouts.map((workout, workoutIndex) => (
                               <DraggableWorkout key={workoutIndex} workout={workout}>
-                                <div
-                                  className={`
-                                    text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
-                                    ${workout.is_completed 
-                                      ? 'bg-green-50 border-green-200' 
-                                      : 'bg-white border-gray-200'
-                                    }
-                                  `}
-                                  title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
-                                >
-                                  {/* Галочка в правом верхнем углу карточки */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
-                                    }}
+                                {({ listeners, attributes }) => (
+                                  <div
                                     className={`
-                                      absolute top-1 right-1 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
+                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
                                       ${workout.is_completed 
-                                        ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
-                                        : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
+                                        ? 'bg-green-50 border-green-200' 
+                                        : 'bg-white border-gray-200'
                                       }
                                     `}
-                                    title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
-                                    style={{ pointerEvents: 'auto' }}
+                                    title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
                                   >
-                                    {workout.is_completed && '✓'}
-                                  </button>
+                                    {/* Галочка в правом верхнем углу карточки */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
+                                      }}
+                                      className={`
+                                        absolute top-1 right-1 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
+                                        ${workout.is_completed 
+                                          ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
+                                          : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
+                                        }
+                                      `}
+                                      title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
+                                      style={{ pointerEvents: 'auto' }}
+                                    >
+                                      {workout.is_completed && '✓'}
+                                    </button>
 
-                                  {/* Drag область - только для содержимого карточки */}
-                                  <div 
-                                    className="cursor-grab active:cursor-grabbing"
-                                    {...listeners}
-                                    {...attributes}
-                                  >
-                                    <div className="flex items-center gap-1 mb-1 pr-5">
-                                      <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
-                                      <span className={`
-                                        inline-block w-2 h-2 rounded-full flex-shrink-0
-                                        ${getSportColor(workout.sport_type)}
-                                      `}></span>
-                                    </div>
-                                    
-                                    <div className="text-xs text-gray-600 truncate">
-                                      {formatDuration(workout.duration_minutes)}
-                                    </div>
-                                    
-                                    <div className={`
-                                      text-xs px-1 py-0.5 rounded text-center truncate
-                                      ${getWorkoutTypeColor(workout.workout_type)}
-                                    `}>
-                                      {getWorkoutTypeLabel(workout.workout_type)}
+                                    {/* Drag область - только для содержимого карточки */}
+                                    <div 
+                                      className="cursor-grab active:cursor-grabbing"
+                                      {...listeners}
+                                      {...attributes}
+                                    >
+                                      <div className="flex items-center gap-1 mb-1 pr-5">
+                                        <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
+                                        <span className={`
+                                          inline-block w-2 h-2 rounded-full flex-shrink-0
+                                          ${getSportColor(workout.sport_type)}
+                                        `}></span>
+                                      </div>
+                                      
+                                      <div className="text-xs text-gray-600 truncate">
+                                        {formatDuration(workout.duration_minutes)}
+                                      </div>
+                                      
+                                      <div className={`
+                                        text-xs px-1 py-0.5 rounded text-center truncate
+                                        ${getWorkoutTypeColor(workout.workout_type)}
+                                      `}>
+                                        {getWorkoutTypeLabel(workout.workout_type)}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
+                                )}
                               </DraggableWorkout>
                             ))}
                           </div>
