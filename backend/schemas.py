@@ -18,6 +18,7 @@ class WorkoutResponse(BaseModel):
     sport_type: SportType
     duration_minutes: int
     workout_type: WorkoutType
+    is_completed: Optional[bool] = Field(default=False, description="Отмечена ли тренировка как выполненная")
     
     class Config:
         from_attributes = True
@@ -89,3 +90,18 @@ class UserUpdate(BaseModel):
 class WorkoutDateUpdate(BaseModel):
     workout_id: int = Field(..., description="ID тренировки")
     new_date: date = Field(..., description="Новая дата тренировки")
+
+# Схемы для отметок выполнения тренировок
+class WorkoutCompletionMarkCreate(BaseModel):
+    workout_id: int = Field(..., description="ID тренировки")
+    date: date = Field(..., description="Дата выполнения тренировки")
+
+class WorkoutCompletionMarkResponse(BaseModel):
+    id: int
+    workout_id: int
+    user_id: int
+    date: date
+    completed_at: datetime
+    
+    class Config:
+        from_attributes = True

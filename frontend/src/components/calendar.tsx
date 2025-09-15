@@ -23,6 +23,7 @@ interface CalendarProps {
   workouts: Workout[];
   onMonthChange: (startDate: string, endDate: string) => void;
   onWorkoutMove?: (workoutId: number, newDate: string) => Promise<void>;
+  onWorkoutToggle?: (workoutId: number, date: string, isCompleted: boolean) => Promise<void>;
   loading?: boolean;
 }
 
@@ -81,7 +82,7 @@ function DroppableDay({ day, children }: { day: Date; children: React.ReactNode 
   );
 }
 
-export default function Calendar({ workouts, onMonthChange, onWorkoutMove, loading = false }: CalendarProps) {
+export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWorkoutToggle, loading = false }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   
@@ -141,6 +142,16 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, loadi
     setCurrentDate(prev => 
       direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1)
     );
+  };
+
+  const handleWorkoutToggle = async (workoutId: number, date: string, currentStatus: boolean) => {
+    if (!onWorkoutToggle) return;
+    
+    try {
+      await onWorkoutToggle(workoutId, date, !currentStatus);
+    } catch (error) {
+      console.error('Ошибка при переключении состояния тренировки:', error);
+    }
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -237,21 +248,52 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, loadi
                     return (
                       <DroppableDay key={`${weekIndex}-${dayIndex}`} day={day}>
                         <div className={`
+                          relative
                           ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
                           ${isToday ? 'bg-blue-50 border-blue-200' : ''}
                         `}>
-                          <div className={`
-                            text-sm font-medium mb-1
-                            ${isToday ? 'text-blue-600' : ''}
-                          `}>
-                            {format(day, 'd')}
+                          <div className="flex justify-between items-start mb-1">
+                            <div className={`
+                              text-sm font-medium
+                              ${isToday ? 'text-blue-600' : ''}
+                            `}>
+                              {format(day, 'd')}
+                            </div>
+                            
+                            {/* Галочка в правом верхнем углу */}
+                            {dayWorkouts.length > 0 && (
+                              <div className="flex flex-col gap-1">
+                                {dayWorkouts.map((workout) => (
+                                  <button
+                                    key={workout.id}
+                                    onClick={() => handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false)}
+                                    className={`
+                                      w-4 h-4 rounded-sm border-2 flex items-center justify-center text-xs transition-all
+                                      ${workout.is_completed 
+                                        ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
+                                        : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
+                                      }
+                                    `}
+                                    title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
+                                  >
+                                    {workout.is_completed && '✓'}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           
                           <div className="space-y-1">
                             {dayWorkouts.map((workout, workoutIndex) => (
                               <DraggableWorkout key={workoutIndex} workout={workout}>
                                 <div
-                                  className="text-xs p-1 rounded bg-white border shadow-sm hover:shadow-md transition-shadow"
+                                  className={`
+                                    text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow
+                                    ${workout.is_completed 
+                                      ? 'bg-green-50 border-green-200' 
+                                      : 'bg-white border-gray-200'
+                                    }
+                                  `}
                                   title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
                                 >
                                   <div className="flex items-center gap-1 mb-1">
@@ -352,13 +394,23 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, loadi
             </div>
           </div>
           
-          {onWorkoutMove && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                💡 Вы можете перетаскивать тренировки на другие дни для изменения даты
-              </p>
-            </div>
-          )}
+          <div className="mt-4 space-y-2">
+            {onWorkoutMove && (
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  💡 Вы можете перетаскивать тренировки на другие дни для изменения даты
+                </p>
+              </div>
+            )}
+            
+            {onWorkoutToggle && (
+              <div className="p-3 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-800">
+                  ✅ Нажимайте на галочки в правом верхнем углу дня, чтобы отметить тренировки как выполненные
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
       </div>

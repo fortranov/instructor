@@ -11,7 +11,9 @@ import {
   CompetitionTypesResponse,
   SportTypeOption,
   WorkoutTypeOption,
-  WorkoutDateUpdate
+  WorkoutDateUpdate,
+  WorkoutCompletionMarkCreate,
+  WorkoutCompletionMarkResponse
 } from '@/types/api';
 
 // Всегда используем относительный путь - это работает как в dev, так и в production
@@ -151,6 +153,19 @@ class ApiClient {
 
   isAuthenticated(): boolean {
     return !!this.token;
+  }
+
+  // Методы для отметок выполнения тренировок
+  async markWorkoutCompleted(workoutId: number, completionData: WorkoutCompletionMarkCreate): Promise<WorkoutCompletionMarkResponse> {
+    return this.request<WorkoutCompletionMarkResponse>('POST', `/workouts/${workoutId}/completion`, completionData);
+  }
+
+  async unmarkWorkoutCompleted(workoutId: number): Promise<void> {
+    return this.request<void>('DELETE', `/workouts/${workoutId}/completion`);
+  }
+
+  async getWorkoutCompletion(workoutId: number): Promise<WorkoutCompletionMarkResponse> {
+    return this.request<WorkoutCompletionMarkResponse>('GET', `/workouts/${workoutId}/completion`);
   }
 
   // Проверка здоровья сервиса

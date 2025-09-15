@@ -7,9 +7,9 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 import random
 
-from database import User, TrainingPlan, Workout, CompetitionType
+from database import User, TrainingPlan, Workout, CompetitionType, WorkoutCompletionMark
 from training_tables import TrainingTables
-from schemas import TrainingPlanCreate
+from schemas import TrainingPlanCreate, WorkoutResponse
 
 class PlanGenerator:
     """Класс для генерации персонализированных планов тренировок"""
@@ -213,8 +213,8 @@ class PlanGenerator:
         
         return self.db.query(TrainingPlan).filter(TrainingPlan.user_id == user.id).first()
     
-    def get_workouts_by_date_range(self, uin: str, start_date: date, end_date: date) -> List[Workout]:
-        """Получить тренировки пользователя в указанном диапазоне дат"""
+    def get_workouts_by_date_range(self, uin: str, start_date: date, end_date: date) -> List[WorkoutResponse]:
+        """Получить тренировки пользователя в указанном диапазоне дат с информацией о выполнении"""
         user = self.db.query(User).filter(User.uin == uin).first()
         if not user:
             return []
@@ -223,11 +223,36 @@ class PlanGenerator:
         if not plan:
             return []
         
-        return self.db.query(Workout).filter(
+        # Получить тренировки
+        workouts = self.db.query(Workout).filter(
             Workout.plan_id == plan.id,
             Workout.date >= start_date,
             Workout.date <= end_date
         ).order_by(Workout.date).all()
+        
+        # Получить все отметки выполнения для этих тренировок
+        workout_ids = [w.id for w in workouts]
+        completion_marks = {}
+        if workout_ids:
+            marks = self.db.query(WorkoutCompletionMark).filter(
+                WorkoutCompletionMark.workout_id.in_(workout_ids),
+                WorkoutCompletionMark.user_id == user.id
+            ).all()
+            completion_marks = {mark.workout_id: True for mark in marks}
+        
+        # Создать список WorkoutResponse с информацией о выполнении
+        workout_responses = []
+        for workout in workouts:
+            workout_responses.append(WorkoutResponse(
+                id=workout.id,
+                date=workout.date,
+                sport_type=workout.sport_type,
+                duration_minutes=workout.duration_minutes,
+                workout_type=workout.workout_type,
+                is_completed=completion_marks.get(workout.id, False)
+            ))
+        
+        return workout_responses
     
     def delete_user_plan(self, uin: str) -> bool:
         """Удалить план пользователя"""

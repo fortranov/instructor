@@ -74,6 +74,8 @@ class User(Base):
     
     # Связь с планами
     plans = relationship("TrainingPlan", back_populates="user")
+    # Связь с отметками выполнения тренировок
+    completion_marks = relationship("WorkoutCompletionMark", back_populates="user", cascade="all, delete-orphan")
 
 # Модель плана тренировок
 class TrainingPlan(Base):
@@ -106,6 +108,22 @@ class Workout(Base):
     
     # Связь с планом
     plan = relationship("TrainingPlan", back_populates="workouts")
+    # Связь с отметками выполнения
+    completion_marks = relationship("WorkoutCompletionMark", back_populates="workout", cascade="all, delete-orphan")
+
+# Модель отметки выполнения тренировки
+class WorkoutCompletionMark(Base):
+    __tablename__ = "workout_completion_marks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    workout_id = Column(Integer, ForeignKey("workouts.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    date = Column(Date, nullable=False)  # Дата когда была отмечена тренировка
+    completed_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Связи
+    workout = relationship("Workout", back_populates="completion_marks")
+    user = relationship("User", back_populates="completion_marks")
 
 # Создание таблиц
 def create_tables():

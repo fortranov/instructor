@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import date, datetime
 
-from database import get_db, User
+from database import get_db, User, Workout, WorkoutCompletionMark
 from schemas import (
     TrainingPlanCreate, 
     TrainingPlanResponse, 
@@ -19,7 +19,9 @@ from schemas import (
     Token,
     UserResponse,
     UserUpdate,
-    WorkoutDateUpdate
+    WorkoutDateUpdate,
+    WorkoutCompletionMarkCreate,
+    WorkoutCompletionMarkResponse
 )
 from plan_generator import PlanGenerator
 from auth import (
@@ -333,3 +335,123 @@ async def update_current_user(
         is_active=bool(current_user.is_active),
         created_at=current_user.created_at
     )
+
+# Маршруты для отметок выполнения тренировок
+
+@router.post("/workouts/{workout_id}/completion", response_model=WorkoutCompletionMarkResponse, status_code=status.HTTP_201_CREATED)
+async def mark_workout_completed(
+    workout_id: int,
+    completion_data: WorkoutCompletionMarkCreate,
+    current_user = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Отметить тренировку как выполненную.
+    """
+    # Проверить, что тренировка существует и принадлежит пользователю
+    workout = db.query(Workout).join(Workout.plan).filter(
+        Workout.id == workout_id,
+        Workout.plan.has(user_id=current_user.id)
+    ).first()
+    
+    if not workout:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Тренировка не найдена или не принадлежит пользователю"
+        )
+    
+    # Проверить, что тренировка еще не отмечена как выполненная
+    existing_mark = db.query(WorkoutCompletionMark).filter(
+        WorkoutCompletionMark.workout_id == workout_id,
+        WorkoutCompletionMark.user_id == current_user.id
+    ).first()
+    
+    if existing_mark:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Тренировка уже отмечена как выполненная"
+        )
+    
+    # Создать отметку выполнения
+    completion_mark = WorkoutCompletionMark(
+        workout_id=workout_id,
+        user_id=current_user.id,
+        date=completion_data.date
+    )
+    
+    db.add(completion_mark)
+    db.commit()
+    db.refresh(completion_mark)
+    
+    return completion_mark
+
+@router.delete("/workouts/{workout_id}/completion", status_code=status.HTTP_204_NO_CONTENT)
+async def unmark_workout_completed(
+    workout_id: int,
+    current_user = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Убрать отметку о выполнении тренировки.
+    """
+    # Проверить, что тренировка существует и принадлежит пользователю
+    workout = db.query(Workout).join(Workout.plan).filter(
+        Workout.id == workout_id,
+        Workout.plan.has(user_id=current_user.id)
+    ).first()
+    
+    if not workout:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Тренировка не найдена или не принадлежит пользователю"
+        )
+    
+    # Найти и удалить отметку выполнения
+    completion_mark = db.query(WorkoutCompletionMark).filter(
+        WorkoutCompletionMark.workout_id == workout_id,
+        WorkoutCompletionMark.user_id == current_user.id
+    ).first()
+    
+    if not completion_mark:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Отметка о выполнении тренировки не найдена"
+        )
+    
+    db.delete(completion_mark)
+    db.commit()
+
+@router.get("/workouts/{workout_id}/completion", response_model=WorkoutCompletionMarkResponse)
+async def get_workout_completion(
+    workout_id: int,
+    current_user = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Получить информацию об отметке выполнения тренировки.
+    """
+    # Проверить, что тренировка существует и принадлежит пользователю
+    workout = db.query(Workout).join(Workout.plan).filter(
+        Workout.id == workout_id,
+        Workout.plan.has(user_id=current_user.id)
+    ).first()
+    
+    if not workout:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Тренировка не найдена или не принадлежит пользователю"
+        )
+    
+    # Найти отметку выполнения
+    completion_mark = db.query(WorkoutCompletionMark).filter(
+        WorkoutCompletionMark.workout_id == workout_id,
+        WorkoutCompletionMark.user_id == current_user.id
+    ).first()
+    
+    if not completion_mark:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Отметка о выполнении тренировки не найдена"
+        )
+    
+    return completion_mark

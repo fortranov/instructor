@@ -48,6 +48,7 @@ export interface Workout {
   sport_type: SportType;
   duration_minutes: number;
   workout_type: WorkoutType;
+  is_completed?: boolean;
 }
 
 export interface TrainingPlan {
@@ -118,4 +119,17 @@ export interface ApiError {
 export interface WorkoutDateUpdate {
   workout_id: number;
   new_date: string; // ISO date string (YYYY-MM-DD)
+}
+
+export interface WorkoutCompletionMarkCreate {
+  workout_id: number;
+  date: string; // ISO date string (YYYY-MM-DD)
+}
+
+export interface WorkoutCompletionMarkResponse {
+  id: number;
+  workout_id: number;
+  user_id: number;
+  date: string;
+  completed_at: string;
 }

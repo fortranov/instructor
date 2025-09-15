@@ -108,6 +108,35 @@ export default function PlanPage() {
     }
   };
 
+  const handleWorkoutToggle = async (workoutId: number, date: string, isCompleted: boolean) => {
+    if (!user?.uin) return;
+    
+    try {
+      if (isCompleted) {
+        // Отметить как выполненную
+        await apiClient.markWorkoutCompleted(workoutId, {
+          workout_id: workoutId,
+          date: date
+        });
+      } else {
+        // Убрать отметку о выполнении
+        await apiClient.unmarkWorkoutCompleted(workoutId);
+      }
+      
+      // Обновить локальное состояние тренировок
+      setWorkouts(prevWorkouts => 
+        prevWorkouts.map(workout => 
+          workout.id === workoutId 
+            ? { ...workout, is_completed: isCompleted }
+            : workout
+        )
+      );
+    } catch (err) {
+      console.error('Ошибка при переключении состояния тренировки:', getErrorMessage(err));
+      // Можно показать уведомление об ошибке пользователю
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -204,6 +233,7 @@ export default function PlanPage() {
               workouts={workouts}
               onMonthChange={handleMonthChange}
               onWorkoutMove={handleWorkoutMove}
+              onWorkoutToggle={handleWorkoutToggle}
               loading={loading}
             />
           </>
