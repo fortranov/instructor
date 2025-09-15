@@ -252,23 +252,36 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                           ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
                           ${isToday ? 'bg-blue-50 border-blue-200' : ''}
                         `}>
-                          <div className="flex justify-between items-start mb-1">
+                          <div className="mb-1">
                             <div className={`
                               text-sm font-medium
                               ${isToday ? 'text-blue-600' : ''}
                             `}>
                               {format(day, 'd')}
                             </div>
-                            
-                            {/* Галочка в правом верхнем углу */}
-                            {dayWorkouts.length > 0 && (
-                              <div className="flex flex-col gap-1">
-                                {dayWorkouts.map((workout) => (
+                          </div>
+                          
+                          <div className="space-y-1">
+                            {dayWorkouts.map((workout, workoutIndex) => (
+                              <DraggableWorkout key={workoutIndex} workout={workout}>
+                                <div
+                                  className={`
+                                    text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
+                                    ${workout.is_completed 
+                                      ? 'bg-green-50 border-green-200' 
+                                      : 'bg-white border-gray-200'
+                                    }
+                                  `}
+                                  title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                                >
+                                  {/* Галочка в правом верхнем углу карточки */}
                                   <button
-                                    key={workout.id}
-                                    onClick={() => handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
+                                    }}
                                     className={`
-                                      w-4 h-4 rounded-sm border-2 flex items-center justify-center text-xs transition-all
+                                      absolute top-0 right-0 w-4 h-4 rounded-sm border-2 flex items-center justify-center text-xs transition-all
                                       ${workout.is_completed 
                                         ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
                                         : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
@@ -278,25 +291,8 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                   >
                                     {workout.is_completed && '✓'}
                                   </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-1">
-                            {dayWorkouts.map((workout, workoutIndex) => (
-                              <DraggableWorkout key={workoutIndex} workout={workout}>
-                                <div
-                                  className={`
-                                    text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow
-                                    ${workout.is_completed 
-                                      ? 'bg-green-50 border-green-200' 
-                                      : 'bg-white border-gray-200'
-                                    }
-                                  `}
-                                  title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
-                                >
-                                  <div className="flex items-center gap-1 mb-1">
+
+                                  <div className="flex items-center gap-1 mb-1 pr-5">
                                     <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
                                     <span className={`
                                       inline-block w-2 h-2 rounded-full flex-shrink-0
@@ -406,7 +402,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
             {onWorkoutToggle && (
               <div className="p-3 bg-green-50 rounded-lg">
                 <p className="text-sm text-green-800">
-                  ✅ Нажимайте на галочки в правом верхнем углу дня, чтобы отметить тренировки как выполненные
+                  ✅ Нажимайте на галочки в правом верхнем углу карточки тренировки, чтобы отметить её как выполненную
                 </p>
               </div>
             )}
