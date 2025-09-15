@@ -167,25 +167,48 @@ class TrainingTables:
             sport_type = sport_types[0]
             frequency = TrainingTables.get_weekly_frequency(sport_type, complexity)
             
-            # Распределить тренировки по типам
+            # Рассчитать общее количество тренировок для распределения объема
+            total_workouts = 0
+            workout_counts = {}
             for workout_type, ratio in distribution.items():
                 count = max(1, int(frequency * ratio))
-                duration = TrainingTables.get_workout_duration(workout_type, sport_type, complexity)
+                workout_counts[workout_type] = count
+                total_workouts += count
+            
+            # Распределить недельный объем между тренировками
+            for workout_type, ratio in distribution.items():
+                count = workout_counts[workout_type]
+                # Рассчитать объем для этого типа тренировок
+                type_volume = int(weekly_volume * ratio)
+                # Разделить объем между тренировками этого типа
+                duration = max(20, type_volume // count) if count > 0 else 60  # Минимум 20 минут
                 
                 for _ in range(count):
                     workouts.append((sport_type, workout_type, duration))
         
         # Если триатлон (три вида спорта)
         else:
-            total_volume_per_sport = weekly_volume // len(sport_types)
+            volume_per_sport = weekly_volume // len(sport_types)
             
             for sport_type in sport_types:
                 frequency = TrainingTables.get_weekly_frequency(sport_type, complexity)
                 frequency = max(2, frequency // 2)  # Меньше тренировок каждого вида для триатлона
                 
+                # Рассчитать общее количество тренировок для этого вида спорта
+                total_workouts = 0
+                workout_counts = {}
                 for workout_type, ratio in distribution.items():
                     count = max(1, int(frequency * ratio))
-                    duration = TrainingTables.get_workout_duration(workout_type, sport_type, complexity)
+                    workout_counts[workout_type] = count
+                    total_workouts += count
+                
+                # Распределить объем для этого вида спорта
+                for workout_type, ratio in distribution.items():
+                    count = workout_counts[workout_type]
+                    # Рассчитать объем для этого типа тренировок
+                    type_volume = int(volume_per_sport * ratio)
+                    # Разделить объем между тренировками этого типа
+                    duration = max(20, type_volume // count) if count > 0 else 45  # Минимум 20 минут
                     
                     for _ in range(count):
                         workouts.append((sport_type, workout_type, duration))

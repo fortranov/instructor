@@ -24,7 +24,12 @@ class PlanGenerator:
         # Найти или создать пользователя
         user = self.db.query(User).filter(User.uin == plan_data.uin).first()
         if not user:
-            user = User(uin=plan_data.uin)
+            # Создаем пользователя с минимальными данными для генерации плана
+            user = User(
+                uin=plan_data.uin,
+                email=f"{plan_data.uin}@triplan.local",  # Временный email для генерации планов
+                hashed_password="temp_hash"  # Временный хеш пароля
+            )
             self.db.add(user)
             self.db.flush()  # Получить ID пользователя
         
