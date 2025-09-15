@@ -9,7 +9,7 @@ import random
 
 from database import User, TrainingPlan, Workout, CompetitionType, WorkoutCompletionMark
 from training_tables import TrainingTables
-from schemas import TrainingPlanCreate, WorkoutResponse
+from schemas import TrainingPlanCreate
 
 class PlanGenerator:
     """Класс для генерации персонализированных планов тренировок"""
@@ -213,7 +213,7 @@ class PlanGenerator:
         
         return self.db.query(TrainingPlan).filter(TrainingPlan.user_id == user.id).first()
     
-    def get_workouts_by_date_range(self, uin: str, start_date: date, end_date: date) -> List[WorkoutResponse]:
+    def get_workouts_by_date_range(self, uin: str, start_date: date, end_date: date) -> List[Dict]:
         """Получить тренировки пользователя в указанном диапазоне дат с информацией о выполнении"""
         user = self.db.query(User).filter(User.uin == uin).first()
         if not user:
@@ -240,17 +240,17 @@ class PlanGenerator:
             ).all()
             completion_marks = {mark.workout_id: True for mark in marks}
         
-        # Создать список WorkoutResponse с информацией о выполнении
+        # Создать список словарей с информацией о выполнении
         workout_responses = []
         for workout in workouts:
-            workout_responses.append(WorkoutResponse(
-                id=workout.id,
-                date=workout.date,
-                sport_type=workout.sport_type,
-                duration_minutes=workout.duration_minutes,
-                workout_type=workout.workout_type,
-                is_completed=completion_marks.get(workout.id, False)
-            ))
+            workout_responses.append({
+                'id': workout.id,
+                'date': workout.date,
+                'sport_type': workout.sport_type,
+                'duration_minutes': workout.duration_minutes,
+                'workout_type': workout.workout_type,
+                'is_completed': completion_marks.get(workout.id, False)
+            })
         
         return workout_responses
     

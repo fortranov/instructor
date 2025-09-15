@@ -18,7 +18,7 @@ class WorkoutResponse(BaseModel):
     sport_type: SportType
     duration_minutes: int
     workout_type: WorkoutType
-    is_completed: Optional[bool] = Field(default=False, description="Отмечена ли тренировка как выполненная")
+    is_completed: bool = Field(default=False, description="Отмечена ли тренировка как выполненная")
     
     class Config:
         from_attributes = True

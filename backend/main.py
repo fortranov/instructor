@@ -9,6 +9,8 @@ from contextlib import asynccontextmanager
 
 from database import create_tables, engine
 from api_routes import router
+from api_completion import completion_router
+from api_workouts import workouts_router
 
 # Создание таблиц при запуске приложения
 @asynccontextmanager
@@ -68,6 +70,8 @@ app.add_middleware(
 
 # Подключение маршрутов
 app.include_router(router, prefix="/api/v1")
+app.include_router(completion_router, prefix="/api/v1")
+app.include_router(workouts_router, prefix="/api/v1")
 
 # Корневой эндпоинт
 @app.get("/")
