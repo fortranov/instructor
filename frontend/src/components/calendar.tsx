@@ -65,12 +65,14 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: R
           }
           
           // Применяем drag listeners только для не-кнопочных элементов
-          const dragListeners = listeners;
-          Object.keys(dragListeners).forEach(key => {
-            if (dragListeners[key] && typeof dragListeners[key] === 'function') {
-              dragListeners[key](e);
-            }
-          });
+          if (listeners) {
+            Object.keys(listeners).forEach(key => {
+              const listener = listeners[key];
+              if (listener && typeof listener === 'function') {
+                listener(e);
+              }
+            });
+          }
         }}
       >
         {children}
