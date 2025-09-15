@@ -60,8 +60,10 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: R
         onMouseDown={(e) => {
           // Не начинать drag если клик по элементу с data-no-drag
           if (e.target instanceof HTMLElement && e.target.closest('[data-no-drag="true"]')) {
+            console.log('Preventing drag for no-drag element');
             e.preventDefault();
-            return;
+            e.stopPropagation();
+            return false;
           }
         }}
       >
@@ -292,19 +294,16 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                 >
                                   {/* Галочка в правом верхнем углу карточки */}
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      console.log('Toggle clicked for workout:', workout.id, 'current status:', workout.is_completed);
-                                      handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
-                                    }}
                                     onMouseDown={(e) => {
                                       e.stopPropagation();
                                       console.log('Mouse down on toggle button');
                                     }}
                                     onMouseUp={(e) => {
                                       e.stopPropagation();
-                                      console.log('Mouse up on toggle button');
+                                      e.preventDefault();
+                                      console.log('Mouse up on toggle button - triggering toggle');
+                                      console.log('Toggle clicked for workout:', workout.id, 'current status:', workout.is_completed);
+                                      handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
                                     }}
                                     className={`
                                       absolute top-1 right-1 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
