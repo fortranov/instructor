@@ -145,7 +145,12 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
   };
 
   const handleWorkoutToggle = async (workoutId: number, date: string, currentStatus: boolean) => {
-    if (!onWorkoutToggle) return;
+    console.log('Calendar handleWorkoutToggle called:', { workoutId, date, currentStatus, onWorkoutToggle: !!onWorkoutToggle });
+    
+    if (!onWorkoutToggle) {
+      console.error('onWorkoutToggle function is not provided');
+      return;
+    }
     
     try {
       await onWorkoutToggle(workoutId, date, !currentStatus);
@@ -278,10 +283,12 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      e.preventDefault();
+                                      console.log('Toggle clicked for workout:', workout.id, 'current status:', workout.is_completed);
                                       handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
                                     }}
                                     className={`
-                                      absolute top-0 right-0 w-4 h-4 rounded-sm border-2 flex items-center justify-center text-xs transition-all
+                                      absolute top-1 right-1 w-4 h-4 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-10
                                       ${workout.is_completed 
                                         ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
                                         : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
