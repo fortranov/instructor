@@ -109,27 +109,19 @@ export default function PlanPage() {
   };
 
   const handleWorkoutToggle = async (workoutId: number, date: string, isCompleted: boolean) => {
-    console.log('handleWorkoutToggle called:', { workoutId, date, isCompleted, userUin: user?.uin });
-    
-    if (!user?.uin) {
-      console.error('No user UIN available');
-      return;
-    }
+    if (!user?.uin) return;
     
     try {
       if (isCompleted) {
-        console.log('Marking workout as completed');
         // Отметить как выполненную
         await apiClient.markWorkoutCompleted(workoutId, {
           date: date
         });
       } else {
-        console.log('Unmarking workout as completed');
         // Убрать отметку о выполнении
         await apiClient.unmarkWorkoutCompleted(workoutId);
       }
       
-      console.log('API call successful, updating local state');
       // Обновить локальное состояние тренировок
       setWorkouts(prevWorkouts => 
         prevWorkouts.map(workout => 

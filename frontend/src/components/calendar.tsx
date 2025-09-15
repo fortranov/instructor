@@ -55,16 +55,22 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: R
       className="cursor-grab active:cursor-grabbing"
     >
       <div 
-        {...listeners} 
         className="h-full"
         onMouseDown={(e) => {
-          // Не начинать drag если клик по элементу с data-no-drag
-          if (e.target instanceof HTMLElement && e.target.closest('[data-no-drag="true"]')) {
-            console.log('Preventing drag for no-drag element');
+          // Начинать drag только если клик НЕ по кнопке галочки
+          if (e.target instanceof HTMLElement && e.target.closest('button')) {
             e.preventDefault();
             e.stopPropagation();
             return false;
           }
+          
+          // Применяем drag listeners только для не-кнопочных элементов
+          const dragListeners = listeners;
+          Object.keys(dragListeners).forEach(key => {
+            if (dragListeners[key] && typeof dragListeners[key] === 'function') {
+              dragListeners[key](e);
+            }
+          });
         }}
       >
         {children}
@@ -158,12 +164,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
   };
 
   const handleWorkoutToggle = async (workoutId: number, date: string, currentStatus: boolean) => {
-    console.log('Calendar handleWorkoutToggle called:', { workoutId, date, currentStatus, onWorkoutToggle: !!onWorkoutToggle });
-    
-    if (!onWorkoutToggle) {
-      console.error('onWorkoutToggle function is not provided');
-      return;
-    }
+    if (!onWorkoutToggle) return;
     
     try {
       await onWorkoutToggle(workoutId, date, !currentStatus);
@@ -281,18 +282,36 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                           
                           <div className="space-y-1">
                             {dayWorkouts.map((workout, workoutIndex) => (
-                              <div key={workoutIndex} className="relative">
-                                <DraggableWorkout workout={workout}>
-                                  <div
+                              <DraggableWorkout key={workoutIndex} workout={workout}>
+                                <div
+                                  className={`
+                                    text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
+                                    ${workout.is_completed 
+                                      ? 'bg-green-50 border-green-200' 
+                                      : 'bg-white border-gray-200'
+                                    }
+                                  `}
+                                  title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                                >
+                                  {/* Галочка в правом верхнем углу карточки */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
+                                    }}
                                     className={`
-                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
+                                      absolute top-1 right-1 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
                                       ${workout.is_completed 
-                                        ? 'bg-green-50 border-green-200' 
-                                        : 'bg-white border-gray-200'
+                                        ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
+                                        : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
                                       }
                                     `}
-                                    title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                                    title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
+                                    style={{ pointerEvents: 'auto' }}
                                   >
+                                    {workout.is_completed && '✓'}
+                                  </button>
 
                                   <div className="flex items-center gap-1 mb-1 pr-5">
                                     <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
@@ -314,28 +333,6 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                   </div>
                                 </div>
                               </DraggableWorkout>
-                              
-                              {/* Галочка в правом верхнем углу карточки - вне drag области */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  console.log('Toggle clicked for workout:', workout.id, 'current status:', workout.is_completed);
-                                  handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
-                                }}
-                                className={`
-                                  absolute top-1 right-1 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
-                                  ${workout.is_completed 
-                                    ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
-                                    : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
-                                  }
-                                `}
-                                title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
-                                style={{ pointerEvents: 'auto' }}
-                              >
-                                {workout.is_completed && '✓'}
-                              </button>
-                            </div>
                             ))}
                           </div>
                         </div>
