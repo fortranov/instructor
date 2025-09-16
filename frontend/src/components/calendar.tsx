@@ -344,8 +344,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                       <div className={`
                                         text-xs px-1 py-0.5 rounded text-center truncate
                                         ${getWorkoutTypeColor(workout.workout_type)}
-                                      `}
-                                      title={`Debug: ${workout.workout_type}, Color: ${getWorkoutTypeColor(workout.workout_type)}`}>
+                                      `}>
                                         {getWorkoutTypeLabel(workout.workout_type)}
                                       </div>
                                     </div>

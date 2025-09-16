@@ -5,6 +5,16 @@ module.exports = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    'bg-green-100',
+    'text-green-800',
+    'bg-orange-100',
+    'text-orange-800',
+    'bg-blue-100',
+    'text-blue-800',
+    'bg-gray-100',
+    'text-gray-800',
+  ],
   darkMode: ["class"],
   theme: {
     extend: {
