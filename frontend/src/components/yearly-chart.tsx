@@ -189,15 +189,16 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
                   )}
                   
                   {/* Столбец */}
-                  <div className="relative w-full h-full flex flex-col justify-end">
+                  <div className="relative w-full flex flex-col justify-end" style={{ height: '256px' }}>
                     {/* Запланированная часть (светлая) */}
                     {week.planned_duration > 0 && (
                       <div
                         className="w-full bg-blue-300 rounded-t border border-blue-400"
                         style={{ 
-                          height: `${actualPlannedHeight}%`
+                          height: `${(actualPlannedHeight / 100) * 256}px`,
+                          minHeight: actualPlannedHeight > 0 ? '4px' : '0px'
                         }}
-                        title={`Запланировано: ${formatDuration(week.planned_duration)}`}
+                        title={`Запланировано: ${formatDuration(week.planned_duration)} (${Math.round(actualPlannedHeight)}% = ${Math.round((actualPlannedHeight / 100) * 256)}px)`}
                       ></div>
                     )}
                     
@@ -206,9 +207,10 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
                       <div
                         className="w-full bg-blue-600 rounded-b border border-blue-700"
                         style={{ 
-                          height: `${actualCompletedHeight}%`
+                          height: `${(actualCompletedHeight / 100) * 256}px`,
+                          minHeight: actualCompletedHeight > 0 ? '4px' : '0px'
                         }}
-                        title={`Выполнено: ${formatDuration(week.completed_duration)}`}
+                        title={`Выполнено: ${formatDuration(week.completed_duration)} (${Math.round(actualCompletedHeight)}% = ${Math.round((actualCompletedHeight / 100) * 256)}px)`}
                       ></div>
                     )}
                     
@@ -220,6 +222,11 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
                         title="Нет данных"
                       ></div>
                     )}
+                    
+                    {/* Отладочная информация - индикатор высоты */}
+                    <div className="absolute -right-6 top-0 text-xs text-red-500" style={{ fontSize: '10px' }}>
+                      {Math.round(actualPlannedHeight + actualCompletedHeight)}%
+                    </div>
                   </div>
                   
                   {/* Название недели */}
@@ -229,8 +236,11 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
                   
                   {/* Отладочная информация под столбцом */}
                   <div className="text-xs text-gray-400 text-center mt-1">
-                    <div>P: {formatHours(week.planned_duration)}ч</div>
-                    <div>C: {formatHours(week.completed_duration)}ч</div>
+                    <div>P: {formatHours(week.planned_duration)}ч ({Math.round(plannedHeight)}%)</div>
+                    <div>C: {formatHours(week.completed_duration)}ч ({Math.round(completedHeight)}%)</div>
+                    <div className="text-red-500 text-xs">
+                      Max: {maxValue}ч
+                    </div>
                   </div>
                 </div>
               );
