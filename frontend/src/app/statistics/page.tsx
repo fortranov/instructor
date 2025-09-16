@@ -251,10 +251,10 @@ export default function StatisticsPage() {
               </div>
             </Card>
 
-            {/* Годовой график */}
+            {/* Недельный график */}
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                График тренировок за {selectedYear} год
+                Недельные объемы тренировок за {selectedYear} год
               </h3>
               <YearlyChart data={yearlyStats.weekly_stats} year={selectedYear} />
             </Card>

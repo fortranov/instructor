@@ -17,11 +17,13 @@ interface YearlyChartProps {
   year?: number;
 }
 
-interface MonthData {
-  name: string;
-  weeks: WeeklyStats[];
-  totalPlanned: number;
-  totalCompleted: number;
+interface WeekData {
+  week_start: string;
+  week_end: string;
+  planned_duration: number;
+  completed_duration: number;
+  planned_workouts: number;
+  completed_workouts: number;
 }
 
 const MONTH_NAMES = [
@@ -46,61 +48,36 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
     return () => window.removeEventListener('resize', checkMobile);
   });
 
-  // Группируем данные по месяцам
-  const monthlyData = useMemo(() => {
-    const months: MonthData[] = [];
+  // Обрабатываем недельные данные
+  const weeklyData = useMemo(() => {
     const currentYear = year || new Date().getFullYear();
     
-    console.log('Processing data for year:', currentYear);
+    console.log('Processing weekly data for year:', currentYear);
     console.log('Input data:', data);
     
-    // Создаем 12 месяцев
-    for (let i = 0; i < 12; i++) {
-      const monthStart = new Date(currentYear, i, 1);
-      const monthEnd = new Date(currentYear, i + 1, 0);
-      
-      const monthWeeks = data.filter(week => {
+    // Фильтруем данные по году и сортируем по дате
+    const yearWeeks = data
+      .filter(week => {
         const weekStart = new Date(week.week_start);
-        const weekEnd = new Date(week.week_end);
-        
-        // Проверяем, что неделя попадает в этот месяц
-        const weekStartMonth = weekStart.getMonth();
-        const weekEndMonth = weekEnd.getMonth();
-        const targetMonth = i;
-        
-        return weekStartMonth === targetMonth || weekEndMonth === targetMonth || 
-               (weekStartMonth < targetMonth && weekEndMonth > targetMonth);
-      });
-      
-      const totalPlanned = monthWeeks.reduce((sum, week) => sum + (week.planned_duration || 0), 0);
-      const totalCompleted = monthWeeks.reduce((sum, week) => sum + (week.completed_duration || 0), 0);
-      
-      months.push({
-        name: MONTH_NAMES[i],
-        weeks: monthWeeks,
-        totalPlanned,
-        totalCompleted
-      });
-      
-      console.log(`Month ${i + 1} (${MONTH_NAMES[i]}):`, {
-        weeks: monthWeeks.length,
-        planned: totalPlanned,
-        completed: totalCompleted
-      });
-    }
+        return weekStart.getFullYear() === currentYear;
+      })
+      .sort((a, b) => new Date(a.week_start).getTime() - new Date(b.week_start).getTime());
     
-    console.log('Monthly data calculated:', months);
-    return months;
+    console.log('Filtered weekly data:', yearWeeks);
+    return yearWeeks;
   }, [data, year]);
 
-  // Для мобильных устройств показываем только 2 месяца
-  const displayData = isMobile ? monthlyData.slice(0, 2) : monthlyData;
+  // Для мобильных устройств показываем только 2 месяца (примерно 8 недель)
+  const displayData = isMobile ? weeklyData.slice(0, 8) : weeklyData;
 
-  // Находим максимальное значение для масштабирования
-  const maxValue = Math.max(
-    ...monthlyData.map(month => Math.max(month.totalPlanned, month.totalCompleted)),
+  // Находим максимальное значение для масштабирования (максимальный недельный объем в часах)
+  const maxValueHours = Math.max(
+    ...weeklyData.map(week => Math.max(week.planned_duration, week.completed_duration)),
     1 // Минимальное значение для отображения
   );
+  
+  // Конвертируем в часы для отображения
+  const maxValue = Math.ceil(maxValueHours / 60); // Округляем вверх до целых часов
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -108,6 +85,10 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
     if (hours === 0) return `${mins}м`;
     if (mins === 0) return `${hours}ч`;
     return `${hours}ч ${mins}м`;
+  };
+
+  const formatHours = (minutes: number) => {
+    return Math.round(minutes / 60);
   };
 
   // Если нет данных, показываем сообщение
@@ -139,49 +120,87 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
         <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-gray-500">
           {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
             <div key={ratio} className="text-right pr-2">
-              {formatDuration(Math.round(maxValue * ratio))}
+              {Math.round(maxValue * ratio)}ч
             </div>
           ))}
         </div>
 
         {/* Основной график */}
         <div className="ml-12">
-          <div className="grid grid-cols-12 gap-1 h-64 items-end">
-            {displayData.map((month, index) => {
-              const plannedHeight = maxValue > 0 ? (month.totalPlanned / maxValue) * 100 : 0;
-              const completedHeight = maxValue > 0 ? (month.totalCompleted / maxValue) * 100 : 0;
+          <div className={`grid gap-2 h-64 items-end ${isMobile ? 'grid-cols-8' : 'grid-cols-12'}`}>
+            {displayData.map((week, index) => {
+              const plannedHeight = maxValue > 0 ? (formatHours(week.planned_duration) / maxValue) * 100 : 0;
+              const completedHeight = maxValue > 0 ? (formatHours(week.completed_duration) / maxValue) * 100 : 0;
+              
+              // Минимальная высота для видимости (минимум 2px)
+              const minHeight = 2;
+              const actualPlannedHeight = Math.max(plannedHeight, plannedHeight > 0 ? minHeight : 0);
+              const actualCompletedHeight = Math.max(completedHeight, completedHeight > 0 ? minHeight : 0);
               
               // Отладочная информация
-              console.log(`Rendering month ${month.name}:`, {
-                planned: month.totalPlanned,
-                completed: month.totalCompleted,
+              const weekStartDate = new Date(week.week_start);
+              const weekEndDate = new Date(week.week_end);
+              const weekLabel = `${weekStartDate.getDate()}.${weekStartDate.getMonth() + 1}`;
+              
+              console.log(`Rendering week ${weekLabel}:`, {
+                planned: week.planned_duration,
+                completed: week.completed_duration,
+                plannedHours: formatHours(week.planned_duration),
+                completedHours: formatHours(week.completed_duration),
                 plannedHeight: `${plannedHeight}%`,
                 completedHeight: `${completedHeight}%`,
+                actualPlannedHeight: `${actualPlannedHeight}%`,
+                actualCompletedHeight: `${actualCompletedHeight}%`,
                 maxValue
               });
               
               return (
-                <div key={month.name} className="flex flex-col items-center">
+                <div key={week.week_start} className="flex flex-col items-center">
                   {/* Столбец */}
-                  <div className="relative w-full max-w-8 h-full flex flex-col justify-end">
+                  <div className="relative w-full h-full flex flex-col justify-end">
                     {/* Запланированная часть (светлая) */}
-                    <div
-                      className="w-full bg-blue-300 rounded-t"
-                      style={{ height: `${plannedHeight}%` }}
-                      title={`Запланировано: ${formatDuration(month.totalPlanned)}`}
-                    ></div>
+                    {week.planned_duration > 0 && (
+                      <div
+                        className="w-full bg-blue-300 rounded-t border border-blue-400"
+                        style={{ 
+                          height: `${actualPlannedHeight}%`,
+                          minHeight: `${minHeight}px`
+                        }}
+                        title={`Запланировано: ${formatDuration(week.planned_duration)}`}
+                      ></div>
+                    )}
                     
                     {/* Выполненная часть (темная) */}
-                    <div
-                      className="w-full bg-blue-600 rounded-b"
-                      style={{ height: `${completedHeight}%` }}
-                      title={`Выполнено: ${formatDuration(month.totalCompleted)}`}
-                    ></div>
+                    {week.completed_duration > 0 && (
+                      <div
+                        className="w-full bg-blue-600 rounded-b border border-blue-700"
+                        style={{ 
+                          height: `${actualCompletedHeight}%`,
+                          minHeight: `${minHeight}px`
+                        }}
+                        title={`Выполнено: ${formatDuration(week.completed_duration)}`}
+                      ></div>
+                    )}
+                    
+                    {/* Если нет данных, показываем пустой столбец */}
+                    {week.planned_duration === 0 && week.completed_duration === 0 && (
+                      <div
+                        className="w-full bg-gray-200 border border-gray-300"
+                        style={{ height: `${minHeight}px` }}
+                        title="Нет данных"
+                      ></div>
+                    )}
                   </div>
                   
-                  {/* Название месяца */}
+                  {/* Название недели */}
                   <div className="mt-2 text-xs text-gray-600 text-center">
-                    {month.name}
+                    {weekLabel}
+                  </div>
+                  
+                  {/* Отладочная информация под столбцом */}
+                  <div className="text-xs text-gray-400 text-center mt-1">
+                    <div>P: {formatHours(week.planned_duration)}ч</div>
+                    <div>C: {formatHours(week.completed_duration)}ч</div>
                   </div>
                 </div>
               );
@@ -201,22 +220,44 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
         ))}
       </div>
 
+      {/* Альтернативное отображение данных в таблице */}
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+        <div className="text-sm font-medium text-gray-700 mb-3">Детальные данные по неделям:</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+          {displayData.map((week) => {
+            const weekStartDate = new Date(week.week_start);
+            const weekLabel = `${weekStartDate.getDate()}.${weekStartDate.getMonth() + 1} - ${new Date(week.week_end).getDate()}.${new Date(week.week_end).getMonth() + 1}`;
+            
+            return (
+              <div key={week.week_start} className="p-2 bg-white rounded border">
+                <div className="font-medium text-gray-800">Неделя {weekLabel}</div>
+                <div className="text-blue-600">Запланировано: {formatHours(week.planned_duration)}ч</div>
+                <div className="text-green-600">Выполнено: {formatHours(week.completed_duration)}ч</div>
+                <div className="text-gray-500">
+                  Прогресс: {week.planned_duration > 0 ? Math.round((week.completed_duration / week.planned_duration) * 100) : 0}%
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Информация о выбранном периоде */}
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
         <div className="text-sm text-gray-600 mb-2">
-          {isMobile ? 'Показаны первые 2 месяца' : 'Показаны все 12 месяцев'}
+          {isMobile ? 'Показаны первые 8 недель' : `Показаны все ${displayData.length} недель`}
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="font-medium">Общее время (запланировано): </span>
             <span className="text-blue-600">
-              {formatDuration(displayData.reduce((sum, month) => sum + month.totalPlanned, 0))}
+              {formatHours(displayData.reduce((sum, week) => sum + week.planned_duration, 0))}ч
             </span>
           </div>
           <div>
             <span className="font-medium">Общее время (выполнено): </span>
             <span className="text-green-600">
-              {formatDuration(displayData.reduce((sum, month) => sum + month.totalCompleted, 0))}
+              {formatHours(displayData.reduce((sum, week) => sum + week.completed_duration, 0))}ч
             </span>
           </div>
         </div>
@@ -224,8 +265,8 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
         {/* Отладочная информация */}
         <div className="mt-4 p-2 bg-yellow-50 rounded text-xs">
           <div className="font-medium text-yellow-800 mb-1">Отладочная информация:</div>
-          <div>Максимальное значение: {maxValue}</div>
-          <div>Количество месяцев: {displayData.length}</div>
+          <div>Максимальное значение: {maxValue}ч</div>
+          <div>Количество недель: {displayData.length}</div>
           <div>Исходных недель: {data.length}</div>
           <div>Год: {year || new Date().getFullYear()}</div>
         </div>
