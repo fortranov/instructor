@@ -67,8 +67,25 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
     return yearWeeks;
   }, [data, year]);
 
-  // Для мобильных устройств показываем только 2 месяца (примерно 8 недель)
-  const displayData = isMobile ? weeklyData.slice(0, 8) : weeklyData;
+  // Показываем все недели
+  const displayData = weeklyData;
+
+  // Группируем недели по месяцам для отображения разделителей
+  const monthlyGroups = useMemo(() => {
+    const groups: { [key: string]: WeeklyStats[] } = {};
+    
+    weeklyData.forEach(week => {
+      const weekStart = new Date(week.week_start);
+      const monthKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}`;
+      
+      if (!groups[monthKey]) {
+        groups[monthKey] = [];
+      }
+      groups[monthKey].push(week);
+    });
+    
+    return groups;
+  }, [weeklyData]);
 
   // Находим максимальное значение для масштабирования (максимальный недельный объем в часах)
   const maxValueHours = Math.max(
@@ -127,10 +144,15 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
 
         {/* Основной график */}
         <div className="ml-12">
-          <div className={`grid gap-2 h-64 items-end ${isMobile ? 'grid-cols-8' : 'grid-cols-12'}`}>
+          <div className="flex gap-1 h-64 items-end overflow-x-auto">
             {displayData.map((week, index) => {
               const plannedHeight = maxValue > 0 ? (formatHours(week.planned_duration) / maxValue) * 100 : 0;
               const completedHeight = maxValue > 0 ? (formatHours(week.completed_duration) / maxValue) * 100 : 0;
+              
+              // Проверяем, нужно ли добавить разделитель месяца
+              const currentWeekMonth = new Date(week.week_start).getMonth();
+              const prevWeekMonth = index > 0 ? new Date(displayData[index - 1].week_start).getMonth() : null;
+              const showMonthDivider = prevWeekMonth !== null && currentWeekMonth !== prevWeekMonth;
               
               // Минимальная высота для видимости (минимум 2px)
               const minHeight = 2;
@@ -155,7 +177,12 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
               });
               
               return (
-                <div key={week.week_start} className="flex flex-col items-center">
+                <div key={week.week_start} className="flex flex-col items-center flex-shrink-0 relative" style={{ width: '20px' }}>
+                  {/* Вертикальный разделитель месяца */}
+                  {showMonthDivider && (
+                    <div className="absolute left-0 top-0 bottom-0 w-px bg-red-400 z-10"></div>
+                  )}
+                  
                   {/* Столбец */}
                   <div className="relative w-full h-full flex flex-col justify-end">
                     {/* Запланированная часть (светлая) */}
@@ -207,6 +234,26 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
             })}
           </div>
         </div>
+        
+        {/* Разделение по месяцам */}
+        <div className="ml-12 flex gap-1 mt-2">
+          {Object.entries(monthlyGroups).map(([monthKey, weeks]) => {
+            const monthDate = new Date(parseInt(monthKey.split('-')[0]), parseInt(monthKey.split('-')[1]));
+            const monthName = MONTH_NAMES[monthDate.getMonth()];
+            
+            return (
+              <div 
+                key={monthKey} 
+                className="flex-shrink-0 text-center"
+                style={{ width: `${weeks.length * 21}px` }} // 20px на столбец + 1px gap
+              >
+                <div className="text-xs text-gray-600 font-medium">
+                  {monthName}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Сетка */}
@@ -245,7 +292,7 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
       {/* Информация о выбранном периоде */}
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
         <div className="text-sm text-gray-600 mb-2">
-          {isMobile ? 'Показаны первые 8 недель' : `Показаны все ${displayData.length} недель`}
+          Показаны все {displayData.length} недель
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
