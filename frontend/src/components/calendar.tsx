@@ -59,20 +59,34 @@ function DraggableWorkout({ workout, children }: { workout: Workout; children: (
 }
 
 // Компонент дропзоны для дня
-function DroppableDay({ day, children }: { day: Date; children: React.ReactNode }) {
+function DroppableDay({ 
+  day, 
+  children, 
+  isDropAllowed = true 
+}: { 
+  day: Date; 
+  children: React.ReactNode;
+  isDropAllowed?: boolean;
+}) {
   const { isOver, setNodeRef } = useDroppable({
     id: `day-${format(day, 'yyyy-MM-dd')}`,
     data: {
       date: format(day, 'yyyy-MM-dd'),
     },
+    disabled: !isDropAllowed,
   });
 
   return (
     <div
       ref={setNodeRef}
       className={`
-        min-h-[100px] p-1 border border-gray-200 bg-white transition-colors
-        ${isOver ? 'bg-blue-50 border-blue-300' : ''}
+        min-h-[100px] p-1 border border-gray-200 transition-colors
+        ${isDropAllowed 
+          ? 'bg-white' 
+          : 'bg-gray-50 opacity-50'
+        }
+        ${isOver && isDropAllowed ? 'bg-blue-50 border-blue-300' : ''}
+        ${!isDropAllowed ? 'cursor-not-allowed' : ''}
       `}
     >
       {children}
@@ -83,6 +97,7 @@ function DroppableDay({ day, children }: { day: Date; children: React.ReactNode 
 export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWorkoutToggle, loading = false }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
+  const [draggedWorkoutWeek, setDraggedWorkoutWeek] = useState<Date | null>(null);
   
   useEffect(() => {
     const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -157,6 +172,8 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
     const workout = active.data.current?.workout;
     if (workout) {
       setActiveWorkout(workout);
+      // Запоминаем неделю, к которой принадлежит перетаскиваемая тренировка
+      setDraggedWorkoutWeek(new Date(workout.date));
     }
   };
 
@@ -164,6 +181,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
     const { active, over } = event;
     
     setActiveWorkout(null);
+    setDraggedWorkoutWeek(null);
     
     if (!over || !onWorkoutMove) return;
     
@@ -171,6 +189,15 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
     const newDate = over.data.current?.date;
     
     if (workout && newDate && workout.date !== newDate) {
+      // Проверяем, что тренировка перемещается в пределах той же недели
+      const originalWeek = new Date(workout.date);
+      const targetWeek = new Date(newDate);
+      
+      if (!isSameWeek(originalWeek, targetWeek, { weekStartsOn: 1 })) {
+        console.warn('Тренировку можно перемещать только в пределах одной недели');
+        return;
+      }
+      
       try {
         await onWorkoutMove(workout.id, newDate);
       } catch (error) {
@@ -242,9 +269,12 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                     const dayWorkouts = getWorkoutsForDay(day);
                     const isCurrentMonth = isSameMonth(day, currentDate);
                     const isToday = isSameDay(day, new Date());
+                    
+                    // Определяем, разрешен ли дроп в этот день
+                    const isDropAllowed = !draggedWorkoutWeek || isSameWeek(day, draggedWorkoutWeek, { weekStartsOn: 1 });
 
                     return (
-                      <DroppableDay key={`${weekIndex}-${dayIndex}`} day={day}>
+                      <DroppableDay key={`${weekIndex}-${dayIndex}`} day={day} isDropAllowed={isDropAllowed}>
                         <div className={`
                           relative
                           ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
@@ -403,7 +433,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
             {onWorkoutMove && (
               <div className="p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  💡 Вы можете перетаскивать тренировки на другие дни для изменения даты
+                  💡 Вы можете перетаскивать тренировки на другие дни в рамках той же недели для изменения даты
                 </p>
               </div>
             )}
