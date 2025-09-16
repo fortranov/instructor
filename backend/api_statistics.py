@@ -91,11 +91,14 @@ async def get_yearly_statistics(
     year_start = date(year, 1, 1)
     year_end = date(year, 12, 31)
     
-    workouts = db.query(Workout).join(WorkoutCompletionMark, isouter=True).filter(
+    workouts = db.query(Workout).filter(
         Workout.plan_id == plan.id,
         Workout.date >= year_start,
         Workout.date <= year_end
     ).all()
+    
+    # Отладочная информация
+    print(f"Debug: Found {len(workouts)} workouts for plan {plan.id} in year {year}")
     
     # Создать словарь для быстрого поиска выполненных тренировок
     completed_workout_ids = set()
@@ -104,6 +107,8 @@ async def get_yearly_statistics(
         WorkoutCompletionMark.date >= year_start,
         WorkoutCompletionMark.date <= year_end
     ).all()
+    
+    print(f"Debug: Found {len(completion_marks)} completion marks for user {current_user.id}")
     
     for mark in completion_marks:
         completed_workout_ids.add(mark.workout_id)
@@ -150,6 +155,8 @@ async def get_yearly_statistics(
         total_completed_duration += completed_duration
         total_planned_workouts += planned_workouts
         total_completed_workouts += completed_workouts_count
+    
+    print(f"Debug: Final stats - planned: {total_planned_duration}, completed: {total_completed_duration}, weeks: {len(weekly_stats)}")
     
     return YearlyStatsResponse(
         year=year,

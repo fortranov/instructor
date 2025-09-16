@@ -90,9 +90,11 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" disabled>
-                Скоро доступно
-              </Button>
+              <Link href="/statistics">
+                <Button variant="outline" className="w-full">
+                  Открыть статистику
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

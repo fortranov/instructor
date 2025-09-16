@@ -14,6 +14,7 @@ interface WeeklyStats {
 
 interface YearlyChartProps {
   data: WeeklyStats[];
+  year?: number;
 }
 
 interface MonthData {
@@ -28,8 +29,10 @@ const MONTH_NAMES = [
   'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'
 ];
 
-export default function YearlyChart({ data }: YearlyChartProps) {
+export default function YearlyChart({ data, year }: YearlyChartProps) {
   const [isMobile, setIsMobile] = useState(false);
+  
+  console.log('YearlyChart props:', { data, year });
 
   // Определяем мобильное устройство
   useState(() => {
@@ -46,11 +49,12 @@ export default function YearlyChart({ data }: YearlyChartProps) {
   // Группируем данные по месяцам
   const monthlyData = useMemo(() => {
     const months: MonthData[] = [];
+    const currentYear = year || new Date().getFullYear();
     
     // Создаем 12 месяцев
     for (let i = 0; i < 12; i++) {
-      const monthStart = new Date(2024, i, 1);
-      const monthEnd = new Date(2024, i + 1, 0);
+      const monthStart = new Date(currentYear, i, 1);
+      const monthEnd = new Date(currentYear, i + 1, 0);
       
       const monthWeeks = data.filter(week => {
         const weekStart = new Date(week.week_start);
@@ -71,8 +75,9 @@ export default function YearlyChart({ data }: YearlyChartProps) {
       });
     }
     
+    console.log('Monthly data calculated:', months);
     return months;
-  }, [data]);
+  }, [data, year]);
 
   // Для мобильных устройств показываем только 2 месяца
   const displayData = isMobile ? monthlyData.slice(0, 2) : monthlyData;

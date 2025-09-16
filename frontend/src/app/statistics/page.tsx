@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import YearlyChart from '@/components/yearly-chart';
+import Navigation from '@/components/navigation';
 import apiClient from '@/lib/api';
 
 interface WeeklyStats {
@@ -65,8 +66,10 @@ export default function StatisticsPage() {
     
     try {
       const data = await apiClient.getYearlyStatistics(year);
+      console.log('Statistics data received:', data);
       setYearlyStats(data);
     } catch (err) {
+      console.error('Error fetching statistics:', err);
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
     } finally {
       setLoading(false);
@@ -100,8 +103,10 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Статистика тренировок
@@ -251,7 +256,7 @@ export default function StatisticsPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 График тренировок за {selectedYear} год
               </h3>
-              <YearlyChart data={yearlyStats.weekly_stats} />
+              <YearlyChart data={yearlyStats.weekly_stats} year={selectedYear} />
             </Card>
           </>
         )}
