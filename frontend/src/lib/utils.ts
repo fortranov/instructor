@@ -95,10 +95,13 @@ export const getSportLabel = (sportType: SportType): string => {
 export const getWorkoutTypeLabel = (workoutType: WorkoutType): string => {
   switch (workoutType) {
     case WorkoutType.ENDURANCE:
+    case 'endurance':
       return 'Длительная';
     case WorkoutType.INTERVAL:
+    case 'interval':
       return 'Интервальная';
     case WorkoutType.RECOVERY:
+    case 'recovery':
       return 'Восстанавливающая';
     default:
       return workoutType;
@@ -108,10 +111,13 @@ export const getWorkoutTypeLabel = (workoutType: WorkoutType): string => {
 export const getWorkoutTypeColor = (workoutType: WorkoutType): string => {
   switch (workoutType) {
     case WorkoutType.ENDURANCE:
+    case 'endurance':
       return 'bg-green-100 text-green-800';
     case WorkoutType.INTERVAL:
+    case 'interval':
       return 'bg-orange-100 text-orange-800';
     case WorkoutType.RECOVERY:
+    case 'recovery':
       return 'bg-blue-100 text-blue-800';
     default:
       return 'bg-gray-100 text-gray-800';
