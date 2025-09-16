@@ -386,7 +386,6 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
           )}
         </CardContent>
       </Card>
-
       </div>
 
       {/* DragOverlay для отображения перетаскиваемого элемента */}
