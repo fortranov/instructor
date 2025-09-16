@@ -51,6 +51,9 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
     const months: MonthData[] = [];
     const currentYear = year || new Date().getFullYear();
     
+    console.log('Processing data for year:', currentYear);
+    console.log('Input data:', data);
+    
     // Создаем 12 месяцев
     for (let i = 0; i < 12; i++) {
       const monthStart = new Date(currentYear, i, 1);
@@ -60,18 +63,29 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
         const weekStart = new Date(week.week_start);
         const weekEnd = new Date(week.week_end);
         
-        // Проверяем пересечение недели с месяцем
-        return (weekStart <= monthEnd && weekEnd >= monthStart);
+        // Проверяем, что неделя попадает в этот месяц
+        const weekStartMonth = weekStart.getMonth();
+        const weekEndMonth = weekEnd.getMonth();
+        const targetMonth = i;
+        
+        return weekStartMonth === targetMonth || weekEndMonth === targetMonth || 
+               (weekStartMonth < targetMonth && weekEndMonth > targetMonth);
       });
       
-      const totalPlanned = monthWeeks.reduce((sum, week) => sum + week.planned_duration, 0);
-      const totalCompleted = monthWeeks.reduce((sum, week) => sum + week.completed_duration, 0);
+      const totalPlanned = monthWeeks.reduce((sum, week) => sum + (week.planned_duration || 0), 0);
+      const totalCompleted = monthWeeks.reduce((sum, week) => sum + (week.completed_duration || 0), 0);
       
       months.push({
         name: MONTH_NAMES[i],
         weeks: monthWeeks,
         totalPlanned,
         totalCompleted
+      });
+      
+      console.log(`Month ${i + 1} (${MONTH_NAMES[i]}):`, {
+        weeks: monthWeeks.length,
+        planned: totalPlanned,
+        completed: totalCompleted
       });
     }
     
@@ -84,7 +98,8 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
 
   // Находим максимальное значение для масштабирования
   const maxValue = Math.max(
-    ...monthlyData.map(month => Math.max(month.totalPlanned, month.totalCompleted))
+    ...monthlyData.map(month => Math.max(month.totalPlanned, month.totalCompleted)),
+    1 // Минимальное значение для отображения
   );
 
   const formatDuration = (minutes: number) => {
@@ -94,6 +109,15 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
     if (mins === 0) return `${hours}ч`;
     return `${hours}ч ${mins}м`;
   };
+
+  // Если нет данных, показываем сообщение
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full text-center py-8">
+        <p className="text-gray-500">Нет данных для отображения</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -126,6 +150,15 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
             {displayData.map((month, index) => {
               const plannedHeight = maxValue > 0 ? (month.totalPlanned / maxValue) * 100 : 0;
               const completedHeight = maxValue > 0 ? (month.totalCompleted / maxValue) * 100 : 0;
+              
+              // Отладочная информация
+              console.log(`Rendering month ${month.name}:`, {
+                planned: month.totalPlanned,
+                completed: month.totalCompleted,
+                plannedHeight: `${plannedHeight}%`,
+                completedHeight: `${completedHeight}%`,
+                maxValue
+              });
               
               return (
                 <div key={month.name} className="flex flex-col items-center">
@@ -186,6 +219,15 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
               {formatDuration(displayData.reduce((sum, month) => sum + month.totalCompleted, 0))}
             </span>
           </div>
+        </div>
+        
+        {/* Отладочная информация */}
+        <div className="mt-4 p-2 bg-yellow-50 rounded text-xs">
+          <div className="font-medium text-yellow-800 mb-1">Отладочная информация:</div>
+          <div>Максимальное значение: {maxValue}</div>
+          <div>Количество месяцев: {displayData.length}</div>
+          <div>Исходных недель: {data.length}</div>
+          <div>Год: {year || new Date().getFullYear()}</div>
         </div>
       </div>
     </div>
