@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Card } from '@/components/ui/card';
+import { useMemo } from 'react';
 
 interface WeeklyStats {
   week_start: string;
@@ -17,34 +16,12 @@ interface YearlyChartProps {
   year?: number;
 }
 
-interface WeekData {
-  week_start: string;
-  week_end: string;
-  planned_duration: number;
-  completed_duration: number;
-  planned_workouts: number;
-  completed_workouts: number;
-}
-
 const MONTH_NAMES = [
   'Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн',
   'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'
 ];
 
 export default function YearlyChart({ data, year }: YearlyChartProps) {
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Определяем мобильное устройство
-  useState(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  });
 
   // Обрабатываем недельные данные
   const weeklyData = useMemo(() => {
@@ -153,9 +130,7 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
               const actualPlannedHeight = Math.max(plannedHeight, plannedHeight > 0 ? minHeightPercent : 0);
               const actualCompletedHeight = Math.max(completedHeight, completedHeight > 0 ? minHeightPercent : 0);
               
-              // Отладочная информация
               const weekStartDate = new Date(week.week_start);
-              const weekEndDate = new Date(week.week_end);
               const weekLabel = `${weekStartDate.getDate()}.${weekStartDate.getMonth() + 1}`;
               
               

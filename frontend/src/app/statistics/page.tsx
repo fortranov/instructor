@@ -82,16 +82,6 @@ export default function StatisticsPage() {
     }
   };
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}ч ${mins}м`;
-  };
-
-  const getCompletionRate = (completed: number, planned: number) => {
-    if (planned === 0) return 0;
-    return Math.round((completed / planned) * 100);
-  };
 
   const getCompletionRateUpToToday = (completed: number, planned: number) => {
     if (planned === 0) return 0;
@@ -103,8 +93,8 @@ export default function StatisticsPage() {
     
     // Если текущий год, считаем только до сегодня
     if (selectedYear === today.getFullYear()) {
-      const totalDays = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24));
-      const totalYearDays = Math.floor((yearEnd - yearStart) / (1000 * 60 * 60 * 24));
+      const totalDays = Math.floor((today.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+      const totalYearDays = Math.floor((yearEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
       const plannedUpToToday = (planned * totalDays) / totalYearDays;
       
       return Math.round((completed / plannedUpToToday) * 100);
