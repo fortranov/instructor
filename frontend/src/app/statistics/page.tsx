@@ -34,6 +34,12 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const handleYearChange = (newYear: number) => {
+    if (availableYears.includes(newYear)) {
+      setSelectedYear(newYear);
+    }
+  };
+
   useEffect(() => {
     fetchAvailableYears();
   }, []);
@@ -87,6 +93,27 @@ export default function StatisticsPage() {
     return Math.round((completed / planned) * 100);
   };
 
+  const getCompletionRateUpToToday = (completed: number, planned: number) => {
+    if (planned === 0) return 0;
+    
+    // Рассчитываем процент выполнения только до сегодняшнего дня
+    const today = new Date();
+    const yearStart = new Date(selectedYear, 0, 1);
+    const yearEnd = new Date(selectedYear, 11, 31);
+    
+    // Если текущий год, считаем только до сегодня
+    if (selectedYear === today.getFullYear()) {
+      const totalDays = Math.floor((today - yearStart) / (1000 * 60 * 60 * 24));
+      const totalYearDays = Math.floor((yearEnd - yearStart) / (1000 * 60 * 60 * 24));
+      const plannedUpToToday = (planned * totalDays) / totalYearDays;
+      
+      return Math.round((completed / plannedUpToToday) * 100);
+    }
+    
+    // Для прошлых лет считаем весь год
+    return Math.round((completed / planned) * 100);
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -116,24 +143,28 @@ export default function StatisticsPage() {
           </p>
         </div>
 
-        {/* Селектор года */}
+        {/* Селектор года со стрелками */}
         <Card className="p-6 mb-8">
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">
-              Выберите год:
-            </label>
-            <div className="flex gap-2">
-              {availableYears.map((year) => (
-                <Button
-                  key={year}
-                  variant={selectedYear === year ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedYear(year)}
-                >
-                  {year}
-                </Button>
-              ))}
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleYearChange(selectedYear - 1)}
+              disabled={!availableYears.includes(selectedYear - 1)}
+            >
+              ←
+            </Button>
+            <div className="text-xl font-semibold text-gray-900">
+              {selectedYear}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleYearChange(selectedYear + 1)}
+              disabled={!availableYears.includes(selectedYear + 1)}
+            >
+              →
+            </Button>
           </div>
         </Card>
 
@@ -154,49 +185,15 @@ export default function StatisticsPage() {
 
         {yearlyStats && !loading && !error && (
           <>
-            {/* Общая статистика */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  Общее время (запланировано)
-                </h3>
-                <p className="text-2xl font-bold text-blue-600">
-                  {formatDuration(yearlyStats.total_planned_duration)}
-                </p>
-              </Card>
-              
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  Общее время (выполнено)
-                </h3>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatDuration(yearlyStats.total_completed_duration)}
-                </p>
-              </Card>
-              
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  Тренировки (запланировано)
-                </h3>
-                <p className="text-2xl font-bold text-blue-600">
-                  {yearlyStats.total_planned_workouts}
-                </p>
-              </Card>
-              
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  Тренировки (выполнено)
-                </h3>
-                <p className="text-2xl font-bold text-green-600">
-                  {yearlyStats.total_completed_workouts}
-                </p>
-              </Card>
-            </div>
-
             {/* Процент выполнения */}
             <Card className="p-6 mb-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Процент выполнения за {selectedYear} год
+                {selectedYear === new Date().getFullYear() && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    (до сегодняшнего дня)
+                  </span>
+                )}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -205,7 +202,7 @@ export default function StatisticsPage() {
                       По времени
                     </span>
                     <span className="text-sm font-medium text-gray-900">
-                      {getCompletionRate(
+                      {getCompletionRateUpToToday(
                         yearlyStats.total_completed_duration,
                         yearlyStats.total_planned_duration
                       )}%
@@ -215,10 +212,10 @@ export default function StatisticsPage() {
                     <div
                       className="bg-blue-600 h-2 rounded-full"
                       style={{
-                        width: `${getCompletionRate(
+                        width: `${Math.min(100, getCompletionRateUpToToday(
                           yearlyStats.total_completed_duration,
                           yearlyStats.total_planned_duration
-                        )}%`,
+                        ))}%`,
                       }}
                     ></div>
                   </div>
@@ -230,7 +227,7 @@ export default function StatisticsPage() {
                       По количеству тренировок
                     </span>
                     <span className="text-sm font-medium text-gray-900">
-                      {getCompletionRate(
+                      {getCompletionRateUpToToday(
                         yearlyStats.total_completed_workouts,
                         yearlyStats.total_planned_workouts
                       )}%
@@ -240,10 +237,10 @@ export default function StatisticsPage() {
                     <div
                       className="bg-green-600 h-2 rounded-full"
                       style={{
-                        width: `${getCompletionRate(
+                        width: `${Math.min(100, getCompletionRateUpToToday(
                           yearlyStats.total_completed_workouts,
                           yearlyStats.total_planned_workouts
-                        )}%`,
+                        ))}%`,
                       }}
                     ></div>
                   </div>
