@@ -168,6 +168,43 @@ class ApiClient {
     return this.request<WorkoutCompletionMarkResponse>('GET', `/workouts/${workoutId}/completion`);
   }
 
+  // Методы для статистики
+  async getYearlyStatistics(year: number): Promise<{
+    year: number;
+    total_planned_duration: number;
+    total_completed_duration: number;
+    total_planned_workouts: number;
+    total_completed_workouts: number;
+    weekly_stats: Array<{
+      week_start: string;
+      week_end: string;
+      planned_duration: number;
+      completed_duration: number;
+      planned_workouts: number;
+      completed_workouts: number;
+    }>;
+  }> {
+    return this.request<{
+      year: number;
+      total_planned_duration: number;
+      total_completed_duration: number;
+      total_planned_workouts: number;
+      total_completed_workouts: number;
+      weekly_stats: Array<{
+        week_start: string;
+        week_end: string;
+        planned_duration: number;
+        completed_duration: number;
+        planned_workouts: number;
+        completed_workouts: number;
+      }>;
+    }>('GET', `/statistics/yearly/${year}`);
+  }
+
+  async getAvailableYears(): Promise<{ years: number[] }> {
+    return this.request<{ years: number[] }>('GET', '/statistics/available-years');
+  }
+
   // Проверка здоровья сервиса
   async healthCheck(): Promise<{ status: string; message: string }> {
     return this.request<{ status: string; message: string }>('GET', '/health');

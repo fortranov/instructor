@@ -110,3 +110,22 @@ class SimpleTrainingPlanWithWorkoutsResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+# Схемы для статистики
+class WeeklyStats(BaseModel):
+    """Статистика за неделю"""
+    week_start: date
+    week_end: date
+    planned_duration: int  # Планируемая продолжительность в минутах
+    completed_duration: int  # Выполненная продолжительность в минутах
+    planned_workouts: int  # Количество запланированных тренировок
+    completed_workouts: int  # Количество выполненных тренировок
+
+class YearlyStatsResponse(BaseModel):
+    """Статистика за год"""
+    year: int
+    total_planned_duration: int  # Общая запланированная продолжительность
+    total_completed_duration: int  # Общая выполненная продолжительность
+    total_planned_workouts: int  # Общее количество запланированных тренировок
+    total_completed_workouts: int  # Общее количество выполненных тренировок
+    weekly_stats: List[WeeklyStats]  # Статистика по неделям
