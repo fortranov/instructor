@@ -130,10 +130,6 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
               const actualPlannedHeight = Math.max(plannedHeight, plannedHeight > 0 ? minHeightPercent : 0);
               const actualCompletedHeight = Math.max(completedHeight, completedHeight > 0 ? minHeightPercent : 0);
               
-              const weekStartDate = new Date(week.week_start);
-              const weekLabel = `${weekStartDate.getDate()}.${weekStartDate.getMonth() + 1}`;
-              
-              
               return (
                 <div key={week.week_start} className="flex flex-col items-center flex-shrink-0 relative" style={{ width: '20px' }}>
                   {/* Вертикальный разделитель месяца */}
@@ -175,11 +171,6 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
                         title="Нет данных"
                       ></div>
                     )}
-                  </div>
-                  
-                  {/* Название недели */}
-                  <div className="mt-2 text-xs text-gray-600 text-center">
-                    {weekLabel}
                   </div>
                 </div>
               );

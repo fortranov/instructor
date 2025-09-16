@@ -387,67 +387,6 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
         </CardContent>
       </Card>
 
-      {/* Легенда */}
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="text-sm font-medium mb-3">Обозначения</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-xs font-medium text-gray-600 mb-2">Виды спорта:</h4>
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🏃</span>
-                  <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                  <span>Бег</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🚴</span>
-                  <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-                  <span>Велосипед</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🏊</span>
-                  <span className="w-3 h-3 bg-cyan-500 rounded-full"></span>
-                  <span>Плавание</span>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="text-xs font-medium text-gray-600 mb-2">Типы тренировок:</h4>
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded">Длительная</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded">Интервальная</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">Восстанавливающая</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 space-y-2">
-            {onWorkoutMove && (
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  💡 Вы можете перетаскивать тренировки на другие дни в рамках той же недели для изменения даты
-                </p>
-              </div>
-            )}
-            
-            {onWorkoutToggle && (
-              <div className="p-3 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-800">
-                  ✅ Нажимайте на галочки в правом верхнем углу карточки тренировки, чтобы отметить её как выполненную
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
       </div>
 
       {/* DragOverlay для отображения перетаскиваемого элемента */}
