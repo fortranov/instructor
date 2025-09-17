@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [preferredWorkoutDays, setPreferredWorkoutDays] = useState<number[]>([0, 1, 2, 4, 5, 6]);
 
   // Данные плана тренировок
   const [complexity, setComplexity] = useState(500);
@@ -48,6 +49,7 @@ export default function ProfilePage() {
       setFirstName(user.first_name || '');
       setLastName(user.last_name || '');
       setEmail(user.email);
+      setPreferredWorkoutDays(user.preferred_workout_days || [0, 1, 2, 4, 5, 6]);
     }
   }, [user]);
 
@@ -92,9 +94,10 @@ export default function ProfilePage() {
     setLoading(true);
 
     try {
-      const updateData: Record<string, string | undefined> = {
+      const updateData: Record<string, string | number[] | undefined> = {
         first_name: firstName || undefined,
         last_name: lastName || undefined,
+        preferred_workout_days: preferredWorkoutDays,
       };
 
       if (email !== user?.email) {
@@ -171,6 +174,27 @@ export default function ProfilePage() {
   };
 
   const needsDistance = competitionType === CompetitionType.CYCLING || competitionType === CompetitionType.SWIMMING;
+
+  // Названия дней недели
+  const weekDays = [
+    { value: 0, label: 'Понедельник' },
+    { value: 1, label: 'Вторник' },
+    { value: 2, label: 'Среда' },
+    { value: 3, label: 'Четверг' },
+    { value: 4, label: 'Пятница' },
+    { value: 5, label: 'Суббота' },
+    { value: 6, label: 'Воскресенье' }
+  ];
+
+  const handleDayToggle = (dayValue: number) => {
+    setPreferredWorkoutDays(prev => {
+      if (prev.includes(dayValue)) {
+        return prev.filter(day => day !== dayValue);
+      } else {
+        return [...prev, dayValue].sort();
+      }
+    });
+  };
 
   if (authLoading) {
     return (
@@ -409,6 +433,28 @@ export default function ProfilePage() {
                     />
                   </div>
                 )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Предпочтительные дни для тренировок
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {weekDays.map((day) => (
+                      <label key={day.value} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={preferredWorkoutDays.includes(day.value)}
+                          onChange={() => handleDayToggle(day.value)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                        <span className="text-sm text-gray-700">{day.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Выберите дни, в которые вы предпочитаете тренироваться
+                  </p>
+                </div>
 
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? 'Создание плана...' : 'Создать план тренировок'}

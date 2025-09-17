@@ -74,6 +74,9 @@ class PlanGenerator:
         """Генерировать тренировки для плана"""
         workouts = []
         
+        # Получить предпочтительные дни пользователя
+        user_preferred_days = self._get_user_preferred_days(plan.user_id)
+        
         # Определить виды спорта для типа соревнования
         sport_types = self.training_tables.get_sport_types_for_competition(plan.competition_type)
         
@@ -108,7 +111,7 @@ class PlanGenerator:
             
             # Назначить даты тренировкам в течение недели
             week_workouts = self._schedule_weekly_workouts(
-                weekly_workouts, current_date, plan.competition_date
+                weekly_workouts, current_date, plan.competition_date, user_preferred_days
             )
             
             workouts.extend(week_workouts)
@@ -168,13 +171,28 @@ class PlanGenerator:
         
         return base_multiplier
     
+    def _get_user_preferred_days(self, user_id: int) -> List[int]:
+        """Получить предпочтительные дни для тренировок пользователя"""
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user or not user.preferred_workout_days:
+            return [0, 1, 2, 4, 5, 6]  # Значение по умолчанию
+        
+        try:
+            import json
+            return json.loads(user.preferred_workout_days)
+        except (json.JSONDecodeError, TypeError):
+            return [0, 1, 2, 4, 5, 6]  # Fallback к значению по умолчанию
+    
     def _schedule_weekly_workouts(self, weekly_workouts: List, start_date: date, 
-                                competition_date: date) -> List[Dict]:
+                                competition_date: date, user_preferred_days: List[int] = None) -> List[Dict]:
         """Распределить тренировки по дням недели"""
         scheduled_workouts = []
         
         # Предпочтительные дни для тренировок (понедельник = 0, воскресенье = 6)
-        preferred_days = [0, 1, 2, 4, 5, 6]  # Исключаем среду как день отдыха
+        if user_preferred_days is not None:
+            preferred_days = user_preferred_days
+        else:
+            preferred_days = [0, 1, 2, 4, 5, 6]  # Исключаем среду как день отдыха (значение по умолчанию)
         
         # Перемешать тренировки для разнообразия
         shuffled_workouts = weekly_workouts.copy()

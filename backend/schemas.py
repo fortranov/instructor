@@ -66,6 +66,7 @@ class UserResponse(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     is_active: bool
+    preferred_workout_days: Optional[List[int]] = Field(default=[0,1,2,4,5,6], description="Предпочтительные дни для тренировок (0=понедельник, 6=воскресенье)")
     created_at: datetime
     
     class Config:
@@ -82,6 +83,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = Field(None, description="Email")
     current_password: Optional[str] = Field(None, description="Текущий пароль")
     new_password: Optional[str] = Field(None, min_length=6, description="Новый пароль")
+    preferred_workout_days: Optional[List[int]] = Field(None, description="Предпочтительные дни для тренировок (0=понедельник, 6=воскресенье)")
 
 # Схема для обновления даты тренировки
 class WorkoutDateUpdate(BaseModel):

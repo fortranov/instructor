@@ -30,8 +30,30 @@ from auth import (
     get_password_hash,
     verify_password
 )
+import json
 
 router = APIRouter()
+
+def create_user_response(user: User) -> UserResponse:
+    """Создать UserResponse из объекта User с правильной обработкой preferred_workout_days"""
+    # Парсинг предпочтительных дней
+    preferred_days = [0, 1, 2, 4, 5, 6]  # Значение по умолчанию
+    if user.preferred_workout_days:
+        try:
+            preferred_days = json.loads(user.preferred_workout_days)
+        except (json.JSONDecodeError, TypeError):
+            preferred_days = [0, 1, 2, 4, 5, 6]  # Fallback к значению по умолчанию
+    
+    return UserResponse(
+        id=user.id,
+        uin=user.uin,
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        is_active=bool(user.is_active),
+        preferred_workout_days=preferred_days,
+        created_at=user.created_at
+    )
 
 @router.post("/plans/create", status_code=status.HTTP_201_CREATED)
 async def create_training_plan(
@@ -194,15 +216,7 @@ async def register_user(
             first_name=user_data.first_name,
             last_name=user_data.last_name
         )
-        return UserResponse(
-            id=user.id,
-            uin=user.uin,
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            is_active=bool(user.is_active),
-            created_at=user.created_at
-        )
+        return create_user_response(user)
     except HTTPException:
         raise
     except Exception as e:
@@ -231,15 +245,7 @@ async def login_user(
     return Token(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse(
-            id=user.id,
-            uin=user.uin,
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            is_active=bool(user.is_active),
-            created_at=user.created_at
-        )
+        user=create_user_response(user)
     )
 
 @router.get("/auth/me", response_model=UserResponse)
@@ -249,15 +255,7 @@ async def get_current_user_info(
     """
     Получить информацию о текущем пользователе.
     """
-    return UserResponse(
-        id=current_user.id,
-        uin=current_user.uin,
-        email=current_user.email,
-        first_name=current_user.first_name,
-        last_name=current_user.last_name,
-        is_active=bool(current_user.is_active),
-        created_at=current_user.created_at
-    )
+    return create_user_response(current_user)
 
 @router.put("/auth/me", response_model=UserResponse)
 async def update_current_user(
@@ -297,19 +295,20 @@ async def update_current_user(
         current_user.email = user_update.email
     if user_update.new_password:
         current_user.hashed_password = get_password_hash(user_update.new_password)
+    if user_update.preferred_workout_days is not None:
+        # Валидация дней недели
+        if not all(0 <= day <= 6 for day in user_update.preferred_workout_days):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Дни недели должны быть от 0 (понедельник) до 6 (воскресенье)"
+            )
+        import json
+        current_user.preferred_workout_days = json.dumps(user_update.preferred_workout_days)
     
     current_user.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(current_user)
     
-    return UserResponse(
-        id=current_user.id,
-        uin=current_user.uin,
-        email=current_user.email,
-        first_name=current_user.first_name,
-        last_name=current_user.last_name,
-        is_active=bool(current_user.is_active),
-        created_at=current_user.created_at
-    )
+    return create_user_response(current_user)
 
 # Endpoints для отметок выполнения перенесены в api_completion.py

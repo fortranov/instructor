@@ -69,6 +69,8 @@ class User(Base):
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     is_active = Column(Integer, default=1)  # SQLite doesn't have Boolean
+    # Предпочтительные дни для тренировок (JSON строка с массивом дней недели: 0=понедельник, 6=воскресенье)
+    preferred_workout_days = Column(String, nullable=True, default="[0,1,2,4,5,6]")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

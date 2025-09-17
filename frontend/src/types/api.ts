@@ -5,6 +5,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   is_active: boolean;
+  preferred_workout_days?: number[];
   created_at: string;
 }
 
@@ -32,6 +33,7 @@ export interface UserUpdate {
   email?: string;
   current_password?: string;
   new_password?: string;
+  preferred_workout_days?: number[];
 }
 
 export interface TrainingPlanCreate {
