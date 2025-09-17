@@ -1,6 +1,25 @@
 # Docker Compose для Triplan
 
 services:
+  # Сервис для выполнения миграций базы данных
+  migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: triplan-migrations
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - DB_PATH=/app/data/triplan.db
+    volumes:
+      - triplan_data:/app/data
+      - ./migrations:/app/migrations:ro
+      - ./run_migrations.py:/app/run_migrations.py:ro
+    command: ["python", "run_migrations.py", "migrate"]
+    networks:
+      - triplan-network
+    restart: "no"  # Выполнить один раз и завершить
+
   # Backend FastAPI сервис
   backend:
     build:
@@ -16,6 +35,8 @@ services:
     volumes:
       # Монтируем директорию для базы данных
       - triplan_data:/app/data
+    depends_on:
+      - migrations  # Ждать выполнения миграций
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/v1/health')"]
       interval: 30s
