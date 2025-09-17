@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Workout, SportType } from '@/types/api';
 import { formatDuration, getSportIcon, getSportColor, getSportLabel, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Move } from 'lucide-react';
 import WorkoutModal from './workout-modal';
 import {
   DndContext,
@@ -308,16 +308,26 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                 {({ listeners, attributes }) => (
                                   <div
                                     className={`
-                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative cursor-pointer
+                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
                                       ${workout.is_completed 
                                         ? 'bg-green-50 border-green-200' 
                                         : 'bg-white border-gray-200'
                                       }
                                     `}
                                     title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
-                                    onClick={() => handleWorkoutClick(workout)}
                                   >
-                                    {/* Галочка в правом верхнем углу карточки */}
+                                    {/* Кнопка drag-and-drop в правом верхнем углу */}
+                                    <button
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-sm border-2 bg-blue-500 border-blue-500 text-white hover:bg-blue-600 flex items-center justify-center text-xs transition-all z-50 cursor-grab active:cursor-grabbing"
+                                      title="Перетащить тренировку"
+                                      style={{ pointerEvents: 'auto' }}
+                                      {...listeners}
+                                      {...attributes}
+                                    >
+                                      <Move className="w-3 h-3" />
+                                    </button>
+
+                                    {/* Галочка выполнения в правом верхнем углу (смещена влево) */}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -325,7 +335,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                         handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
                                       }}
                                       className={`
-                                        absolute top-1 right-1 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
+                                        absolute top-1 right-7 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
                                         ${workout.is_completed 
                                           ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
                                           : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
@@ -337,13 +347,12 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                       {workout.is_completed && '✓'}
                                     </button>
 
-                                    {/* Drag область - только для содержимого карточки */}
+                                    {/* Основная область карточки - клик для открытия модального окна */}
                                     <div 
-                                      className="cursor-grab active:cursor-grabbing"
-                                      {...listeners}
-                                      {...attributes}
+                                      className="cursor-pointer pr-12"
+                                      onClick={() => handleWorkoutClick(workout)}
                                     >
-                                      <div className="flex items-center gap-1 mb-1 pr-5">
+                                      <div className="flex items-center gap-1 mb-1">
                                         <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
                                         <span className={`
                                           inline-block w-2 h-2 rounded-full flex-shrink-0
