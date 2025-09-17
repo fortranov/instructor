@@ -30,13 +30,13 @@ def up():
         print(f"  Добавление поля preferred_workout_days в таблицу users...")
         cursor.execute("""
             ALTER TABLE users 
-            ADD COLUMN preferred_workout_days TEXT DEFAULT '[0,1,2,4,5,6]'
+            ADD COLUMN preferred_workout_days TEXT DEFAULT '[0,1,2,3,4,5,6]'
         """)
         
         # Обновить существующих пользователей значением по умолчанию
         cursor.execute("""
             UPDATE users 
-            SET preferred_workout_days = '[0,1,2,4,5,6]' 
+            SET preferred_workout_days = '[0,1,2,3,4,5,6]' 
             WHERE preferred_workout_days IS NULL
         """)
         
