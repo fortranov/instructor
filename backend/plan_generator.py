@@ -296,10 +296,23 @@ class PlanGenerator:
             # Добавить смещение до выбранного дня недели
             workout_date = monday_of_week + timedelta(days=preferred_day)
             
-            # Если дата тренировки в прошлом, перенести на следующую неделю
+            # Если дата тренировки в прошлом, НЕ переносить на следующую неделю,
+            # а распределить по предпочтительным дням текущей недели
             if workout_date < start_date:
-                workout_date += timedelta(days=7)
-            
+                # Найти ближайший предпочтительный день в текущей неделе
+                current_week_preferred_days = []
+                for day in preferred_days:
+                    day_date = monday_of_week + timedelta(days=day)
+                    if day_date >= start_date:
+                        current_week_preferred_days.append(day)
+                
+                if current_week_preferred_days:
+                    # Использовать предпочтительный день из текущей недели
+                    preferred_day = current_week_preferred_days[i % len(current_week_preferred_days)]
+                    workout_date = monday_of_week + timedelta(days=preferred_day)
+                else:
+                    # Если нет подходящих дней в текущей неделе, пропустить тренировку
+                    continue
             
             # Убедиться, что дата не превышает дату соревнования
             if workout_date >= competition_date:
