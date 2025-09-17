@@ -30,7 +30,7 @@ class PlanGenerator:
                 uin=plan_data.uin,
                 email=f"{plan_data.uin}@triplan.local",  # Временный email для генерации планов
                 hashed_password="temp_hash",  # Временный хеш пароля
-                preferred_workout_days=json.dumps([0, 1, 2, 3, 4, 5, 6])  # Все дни недели по умолчанию
+                preferred_workout_days=json.dumps([0, 1, 4, 5, 6])  # Дни недели по умолчанию (без среды)
             )
             self.db.add(user)
             self.db.flush()  # Получить ID пользователя
@@ -147,11 +147,8 @@ class PlanGenerator:
             # Проверить, соответствует ли день предпочтительным дням
             if day_of_week in preferred_days:
                 filtered_workouts.append(workout)
-            else:
-                # Перенести тренировку на ближайший предпочтительный день
-                moved_workout = self._move_workout_to_preferred_day(workout, preferred_days)
-                if moved_workout:
-                    filtered_workouts.append(moved_workout)
+            # Если день не в предпочтительных днях, тренировка исключается (не переносится)
+        
         return filtered_workouts
     
     def _move_workout_to_preferred_day(self, workout: Dict, preferred_days: List[int]) -> Dict:
@@ -259,14 +256,14 @@ class PlanGenerator:
         """Получить предпочтительные дни для тренировок пользователя"""
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user or not user.preferred_workout_days:
-            return [0, 1, 2, 3, 4, 5, 6]  # Все дни недели по умолчанию
+            return [0, 1, 4, 5, 6]  # Дни недели по умолчанию (без среды)
         
         try:
             import json
             preferred_days = json.loads(user.preferred_workout_days)
             return preferred_days
         except (json.JSONDecodeError, TypeError):
-            return [0, 1, 2, 3, 4, 5, 6]  # Fallback к значению по умолчанию
+            return [0, 1, 4, 5, 6]  # Fallback к значению по умолчанию (без среды)
     
     def _schedule_weekly_workouts(self, weekly_workouts: List, start_date: date, 
                                 competition_date: date, user_preferred_days: List[int] = None) -> List[Dict]:
@@ -277,7 +274,8 @@ class PlanGenerator:
         if user_preferred_days is not None:
             preferred_days = user_preferred_days
         else:
-            preferred_days = [0, 1, 2, 3, 4, 5, 6]  # Все дни недели по умолчанию
+            preferred_days = [0, 1, 4, 5, 6]  # Дни недели по умолчанию (без среды)
+        
         
         # Перемешать тренировки для разнообразия
         shuffled_workouts = weekly_workouts.copy()
@@ -303,6 +301,7 @@ class PlanGenerator:
             else:
                 # Fallback к понедельнику если нет предпочтительных дней
                 preferred_day = 0
+            
             
             # Рассчитать смещение от начала недели (понедельник = 0)
             # start_date может быть любым днем недели, нужно найти понедельник этой недели
