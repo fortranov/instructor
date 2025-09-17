@@ -22,7 +22,7 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [preferredWorkoutDays, setPreferredWorkoutDays] = useState<number[]>([0, 1, 4, 5, 6]);
+  const [preferredWorkoutDays, setPreferredWorkoutDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
 
   // Данные плана тренировок
   const [complexity, setComplexity] = useState(500);
@@ -49,7 +49,7 @@ export default function ProfilePage() {
       setFirstName(user.first_name || '');
       setLastName(user.last_name || '');
       setEmail(user.email);
-      setPreferredWorkoutDays(user.preferred_workout_days || [0, 1, 4, 5, 6]);
+      setPreferredWorkoutDays(user.preferred_workout_days || [0, 1, 2, 3, 4, 5, 6]);
     }
   }, [user]);
 
