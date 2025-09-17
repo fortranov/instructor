@@ -37,12 +37,12 @@ router = APIRouter()
 def create_user_response(user: User) -> UserResponse:
     """Создать UserResponse из объекта User с правильной обработкой preferred_workout_days"""
     # Парсинг предпочтительных дней
-    preferred_days = [0, 1, 2, 4, 5, 6]  # Значение по умолчанию
+    preferred_days = [0, 1, 2, 3, 4, 5, 6]  # Все дни недели по умолчанию
     if user.preferred_workout_days:
         try:
             preferred_days = json.loads(user.preferred_workout_days)
         except (json.JSONDecodeError, TypeError):
-            preferred_days = [0, 1, 2, 4, 5, 6]  # Fallback к значению по умолчанию
+            preferred_days = [0, 1, 2, 3, 4, 5, 6]  # Fallback к значению по умолчанию
     
     return UserResponse(
         id=user.id,

@@ -30,7 +30,7 @@ class PlanGenerator:
                 uin=plan_data.uin,
                 email=f"{plan_data.uin}@triplan.local",  # Временный email для генерации планов
                 hashed_password="temp_hash",  # Временный хеш пароля
-                preferred_workout_days=json.dumps([0, 1, 2, 4, 5, 6])  # Значение по умолчанию
+                preferred_workout_days=json.dumps([0, 1, 2, 3, 4, 5, 6])  # Все дни недели по умолчанию
             )
             self.db.add(user)
             self.db.flush()  # Получить ID пользователя
@@ -259,14 +259,14 @@ class PlanGenerator:
         """Получить предпочтительные дни для тренировок пользователя"""
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user or not user.preferred_workout_days:
-            return [0, 1, 2, 4, 5, 6]  # Значение по умолчанию
+            return [0, 1, 2, 3, 4, 5, 6]  # Все дни недели по умолчанию
         
         try:
             import json
             preferred_days = json.loads(user.preferred_workout_days)
             return preferred_days
         except (json.JSONDecodeError, TypeError):
-            return [0, 1, 2, 4, 5, 6]  # Fallback к значению по умолчанию
+            return [0, 1, 2, 3, 4, 5, 6]  # Fallback к значению по умолчанию
     
     def _schedule_weekly_workouts(self, weekly_workouts: List, start_date: date, 
                                 competition_date: date, user_preferred_days: List[int] = None) -> List[Dict]:
@@ -277,7 +277,7 @@ class PlanGenerator:
         if user_preferred_days is not None:
             preferred_days = user_preferred_days
         else:
-            preferred_days = [0, 1, 2, 4, 5, 6]  # Исключаем среду как день отдыха (значение по умолчанию)
+            preferred_days = [0, 1, 2, 3, 4, 5, 6]  # Все дни недели по умолчанию
         
         # Перемешать тренировки для разнообразия
         shuffled_workouts = weekly_workouts.copy()

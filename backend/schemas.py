@@ -66,7 +66,7 @@ class UserResponse(BaseModel):
     first_name: Optional[str]
     last_name: Optional[str]
     is_active: bool
-    preferred_workout_days: Optional[List[int]] = Field(default=[0,1,2,4,5,6], description="Предпочтительные дни для тренировок (0=понедельник, 6=воскресенье)")
+    preferred_workout_days: Optional[List[int]] = Field(default=[0,1,2,3,4,5,6], description="Предпочтительные дни для тренировок (0=понедельник, 6=воскресенье)")
     created_at: datetime
     
     class Config:
