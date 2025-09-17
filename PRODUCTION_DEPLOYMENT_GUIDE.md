@@ -12,12 +12,15 @@
 git pull origin main
 
 # Пересобрать Docker контейнеры
-docker-compose down
-docker-compose build
-docker-compose up -d
+sudo docker-compose down
+sudo docker-compose build
+sudo docker-compose up -d
 ```
 
 ### 2. Выполнение миграций
+**Примечание**: Миграции выполняются автоматически при запуске сервиса `migrations` в `docker-compose up -d`.
+
+Если нужно выполнить миграции вручную:
 ```bash
 # Выполнить миграции для обновления настроек пользователей
 sudo docker-compose exec backend python run_migrations.py migrate

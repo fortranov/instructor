@@ -13,8 +13,6 @@ services:
       - DB_PATH=/app/data/triplan.db
     volumes:
       - triplan_data:/app/data
-      - ./migrations:/app/migrations:ro
-      - ./run_migrations.py:/app/run_migrations.py:ro
     command: ["python", "run_migrations.py", "migrate"]
     networks:
       - triplan-network

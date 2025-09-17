@@ -109,14 +109,14 @@ migrate-rollback:
 	docker-compose exec backend python run_migrations.py rollback --version $$version
 
 migrate-local:
-	python run_migrations.py migrate
+	cd backend && python run_migrations.py migrate
 
 migrate-local-status:
-	python run_migrations.py status
+	cd backend && python run_migrations.py status
 
 migrate-local-rollback:
 	@read -p "Enter version to rollback to: " version; \
-	python run_migrations.py rollback --version $$version
+	cd backend && python run_migrations.py rollback --version $$version
 
 # Restart individual services
 restart-backend:
