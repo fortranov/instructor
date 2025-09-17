@@ -283,10 +283,26 @@ class PlanGenerator:
         shuffled_workouts = weekly_workouts.copy()
         random.shuffle(shuffled_workouts)
         
-        # Распределить тренировки по дням
+        # Распределить тренировки по дням более равномерно
         for i, (sport_type, workout_type, duration) in enumerate(shuffled_workouts):
-            # Выбрать день недели из предпочтительных дней
-            preferred_day = preferred_days[i % len(preferred_days)]
+            # Выбрать день недели из предпочтительных дней более равномерно
+            if len(preferred_days) > 0:
+                # Использовать более умное распределение для равномерного покрытия всех предпочтительных дней
+                # Если тренировок меньше чем предпочтительных дней, распределить равномерно
+                if len(shuffled_workouts) <= len(preferred_days):
+                    # Распределить тренировки равномерно по всем предпочтительным дням
+                    # Использовать интервалы для более равномерного распределения
+                    interval = len(preferred_days) / len(shuffled_workouts)
+                    day_index = int(i * interval) % len(preferred_days)
+                    preferred_day = preferred_days[day_index]
+                else:
+                    # Если тренировок больше чем предпочтительных дней,
+                    # распределить равномерно с повторением дней
+                    day_index = i % len(preferred_days)
+                    preferred_day = preferred_days[day_index]
+            else:
+                # Fallback к понедельнику если нет предпочтительных дней
+                preferred_day = 0
             
             # Рассчитать смещение от начала недели (понедельник = 0)
             # start_date может быть любым днем недели, нужно найти понедельник этой недели
