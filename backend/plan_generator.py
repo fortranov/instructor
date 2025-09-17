@@ -362,10 +362,13 @@ class PlanGenerator:
             ).all()
             completion_marks = {mark.workout_id: True for mark in marks}
         
+        # Фильтровать тренировки по предпочтительным дням пользователя
+        # Это нужно для старых планов, которые могли быть созданы с другими предпочтениями
+        filtered_workouts = self._filter_workouts_by_preferred_days_from_db(workouts, user.id)
+        
         # Создать список словарей с информацией о выполнении
-        # Тренировки уже созданы с учетом предпочтительных дней, дополнительная фильтрация не нужна
         workout_responses = []
-        for workout in workouts:
+        for workout in filtered_workouts:
             workout_responses.append({
                 'id': workout.id,
                 'date': workout.date,
