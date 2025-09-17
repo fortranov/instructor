@@ -289,9 +289,8 @@ class PlanGenerator:
                 # Если тренировок меньше чем предпочтительных дней, распределить равномерно
                 if len(shuffled_workouts) <= len(preferred_days):
                     # Распределить тренировки равномерно по всем предпочтительным дням
-                    # Использовать интервалы для более равномерного распределения
-                    interval = len(preferred_days) / len(shuffled_workouts)
-                    day_index = int(i * interval) % len(preferred_days)
+                    # Использовать равномерное распределение без пропусков
+                    day_index = i % len(preferred_days)
                     preferred_day = preferred_days[day_index]
                 else:
                     # Если тренировок больше чем предпочтительных дней,
@@ -311,23 +310,10 @@ class PlanGenerator:
             # Добавить смещение до выбранного дня недели
             workout_date = monday_of_week + timedelta(days=preferred_day)
             
-            # Если дата тренировки в прошлом, НЕ переносить на следующую неделю,
-            # а распределить по предпочтительным дням текущей недели
+            # Если дата тренировки в прошлом, перенести на следующую неделю
             if workout_date < start_date:
-                # Найти ближайший предпочтительный день в текущей неделе
-                current_week_preferred_days = []
-                for day in preferred_days:
-                    day_date = monday_of_week + timedelta(days=day)
-                    if day_date >= start_date:
-                        current_week_preferred_days.append(day)
-                
-                if current_week_preferred_days:
-                    # Использовать предпочтительный день из текущей недели
-                    preferred_day = current_week_preferred_days[i % len(current_week_preferred_days)]
-                    workout_date = monday_of_week + timedelta(days=preferred_day)
-                else:
-                    # Если нет подходящих дней в текущей неделе, пропустить тренировку
-                    continue
+                # Перенести тренировку на следующую неделю в тот же день
+                workout_date = workout_date + timedelta(days=7)
             
             # Убедиться, что дата не превышает дату соревнования
             if workout_date >= competition_date:
