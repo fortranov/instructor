@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Workout, SportType } from '@/types/api';
 import { formatDuration, getSportIcon, getSportColor, getSportLabel, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import WorkoutModal from './workout-modal';
 import {
   DndContext,
   DragEndEvent,
@@ -98,6 +99,8 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [draggedWorkoutWeek, setDraggedWorkoutWeek] = useState<Date | null>(null);
+  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   useEffect(() => {
     const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
@@ -165,6 +168,16 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
     } catch (error) {
       console.error('Ошибка при переключении состояния тренировки:', error);
     }
+  };
+
+  const handleWorkoutClick = (workout: Workout) => {
+    setSelectedWorkout(workout);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedWorkout(null);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -295,13 +308,14 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                 {({ listeners, attributes }) => (
                                   <div
                                     className={`
-                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
+                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative cursor-pointer
                                       ${workout.is_completed 
                                         ? 'bg-green-50 border-green-200' 
                                         : 'bg-white border-gray-200'
                                       }
                                     `}
                                     title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                                    onClick={() => handleWorkoutClick(workout)}
                                   >
                                     {/* Галочка в правом верхнем углу карточки */}
                                     <button
@@ -413,6 +427,13 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Модальное окно с описанием тренировки */}
+      <WorkoutModal
+        workout={selectedWorkout}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </DndContext>
   );
 }
