@@ -13,7 +13,7 @@ checksum = "b2c3d4e5f6g7"  # Можно использовать хеш соде
 
 def up():
     """Выполнить миграцию"""
-    db_path = os.getenv("DB_PATH", "./triplan.db")
+    db_path = os.getenv("DB_PATH", "../../triplan.db")
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
@@ -54,7 +54,7 @@ def up():
 
 def down():
     """Откатить миграцию"""
-    db_path = os.getenv("DB_PATH", "./triplan.db")
+    db_path = os.getenv("DB_PATH", "../../triplan.db")
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     

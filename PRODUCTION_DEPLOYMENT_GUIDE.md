@@ -20,19 +20,19 @@ docker-compose up -d
 ### 2. Выполнение миграций
 ```bash
 # Выполнить миграции для обновления настроек пользователей
-docker-compose exec backend python run_migrations.py migrate
+sudo docker-compose exec backend python run_migrations.py migrate
 ```
 
 ### 3. Проверка миграций
 ```bash
 # Проверить статус миграций
-docker-compose exec backend python run_migrations.py status
+sudo docker-compose exec backend python run_migrations.py status
 ```
 
 ### 4. Проверка настроек пользователей
 ```bash
-# Проверить настройки пользователей
-docker-compose exec backend python check_user_settings.py
+# Проверить настройки пользователей (если файл существует)
+sudo docker-compose exec backend python check_user_settings.py
 ```
 
 ## Что исправлено
@@ -77,7 +77,7 @@ docker-compose exec backend python check_user_settings.py
 
 ```bash
 # Откатить последнюю миграцию
-docker-compose exec backend python run_migrations.py rollback 003_fix_wednesday_exclusion_correct
+sudo docker-compose exec backend python run_migrations.py rollback 003_fix_wednesday_exclusion_correct
 ```
 
 ## Контакты

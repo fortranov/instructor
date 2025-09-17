@@ -14,7 +14,7 @@ class MigrationManager:
     """Класс для управления миграциями базы данных"""
     
     def __init__(self, db_path: str = None):
-        self.db_path = db_path or os.getenv("DB_PATH", "./triplan.db")
+        self.db_path = db_path or os.getenv("DB_PATH", "../../triplan.db")
         self.migrations_table = "schema_migrations"
     
     def get_connection(self) -> sqlite3.Connection:

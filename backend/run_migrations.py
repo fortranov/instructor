@@ -19,7 +19,7 @@ def main():
     args = parser.parse_args()
     
     # Настроить путь к базе данных
-    db_path = args.db_path or os.getenv("DB_PATH", "./triplan.db")
+    db_path = args.db_path or os.getenv("DB_PATH", "../triplan.db")
     
     # Создать менеджер миграций
     manager = MigrationManager(db_path)
