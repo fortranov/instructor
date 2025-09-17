@@ -25,10 +25,12 @@ class PlanGenerator:
         user = self.db.query(User).filter(User.uin == plan_data.uin).first()
         if not user:
             # Создаем пользователя с минимальными данными для генерации плана
+            import json
             user = User(
                 uin=plan_data.uin,
                 email=f"{plan_data.uin}@triplan.local",  # Временный email для генерации планов
-                hashed_password="temp_hash"  # Временный хеш пароля
+                hashed_password="temp_hash",  # Временный хеш пароля
+                preferred_workout_days=json.dumps([0, 1, 2, 4, 5, 6])  # Значение по умолчанию
             )
             self.db.add(user)
             self.db.flush()  # Получить ID пользователя
@@ -179,7 +181,8 @@ class PlanGenerator:
         
         try:
             import json
-            return json.loads(user.preferred_workout_days)
+            preferred_days = json.loads(user.preferred_workout_days)
+            return preferred_days
         except (json.JSONDecodeError, TypeError):
             return [0, 1, 2, 4, 5, 6]  # Fallback к значению по умолчанию
     
@@ -200,15 +203,21 @@ class PlanGenerator:
         
         # Распределить тренировки по дням
         for i, (sport_type, workout_type, duration) in enumerate(shuffled_workouts):
-            # Выбрать день недели
-            if i < len(preferred_days):
-                day_offset = preferred_days[i]
-            else:
-                # Если тренировок больше, чем предпочтительных дней
-                day_offset = i % 7
+            # Выбрать день недели из предпочтительных дней
+            preferred_day = preferred_days[i % len(preferred_days)]
             
-            # Рассчитать дату тренировки
-            workout_date = start_date + timedelta(days=day_offset)
+            # Рассчитать смещение от начала недели (понедельник = 0)
+            # start_date может быть любым днем недели, нужно найти понедельник этой недели
+            days_since_monday = start_date.weekday()  # 0 = понедельник, 6 = воскресенье
+            monday_of_week = start_date - timedelta(days=days_since_monday)
+            
+            # Добавить смещение до выбранного дня недели
+            workout_date = monday_of_week + timedelta(days=preferred_day)
+            
+            # Если дата тренировки в прошлом, перенести на следующую неделю
+            if workout_date < start_date:
+                workout_date += timedelta(days=7)
+            
             
             # Убедиться, что дата не превышает дату соревнования
             if workout_date >= competition_date:
