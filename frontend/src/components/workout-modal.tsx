@@ -28,14 +28,28 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
     }
   }, [workout]);
 
+  const getActivityName = (sportType: SportType): string => {
+    switch (sportType) {
+      case SportType.RUNNING:
+        return 'бег';
+      case SportType.CYCLING:
+        return 'езда на велосипеде';
+      case SportType.SWIMMING:
+        return 'плавание';
+      default:
+        return 'активность';
+    }
+  };
+
   const generateWorkoutStages = (workout: Workout): WorkoutStage[] => {
     const stages: WorkoutStage[] = [];
     const totalDuration = workout.duration_minutes;
+    const activityName = getActivityName(workout.sport_type);
     
     // Разминка - всегда 5 минут
     stages.push({
       duration: 5,
-      description: 'Разминка - легкий бег/езда/плавание для подготовки организма к нагрузке'
+      description: `Разминка - легкий ${activityName} для подготовки организма к нагрузке`
     });
 
     // Основная часть тренировки
@@ -45,13 +59,13 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
       // Длительная тренировка - равномерный бег во второй зоне
       stages.push({
         duration: mainDuration,
-        description: 'Равномерный бег/езда/плавание во второй зоне интенсивности (комфортная скорость, можно поддерживать разговор)'
+        description: `Равномерный ${activityName} во второй зоне интенсивности (комфортная скорость, можно поддерживать разговор)`
       });
     } else if (workout.workout_type === WorkoutType.RECOVERY) {
       // Восстановительная тренировка - равномерный бег в первой зоне
       stages.push({
         duration: mainDuration,
-        description: 'Восстановительный бег/езда/плавание в первой зоне интенсивности (очень легкий темп, полное восстановление)'
+        description: `Восстановительный ${activityName} в первой зоне интенсивности (очень легкий темп, полное восстановление)`
       });
     } else if (workout.workout_type === WorkoutType.INTERVAL) {
       // Интервальная тренировка
@@ -62,7 +76,7 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
     // Заминка - всегда 5 минут
     stages.push({
       duration: 5,
-      description: 'Заминка - легкий бег/езда/плавание для восстановления и снижения пульса'
+      description: `Заминка - легкий ${activityName} для восстановления и снижения пульса`
     });
 
     return stages;
@@ -70,6 +84,7 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
 
   const generateIntervals = (totalDuration: number, sportType: SportType): WorkoutStage[] => {
     const intervals: WorkoutStage[] = [];
+    const activityName = getActivityName(sportType);
     
     // Определяем длительность интервалов в зависимости от вида спорта
     let intervalDuration: number;
@@ -107,7 +122,7 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
       if (i < cycles - 1 || remainingTime > 0) {
         intervals.push({
           duration: restDuration,
-          description: 'Медленный бег/езда/плавание для восстановления'
+          description: `Медленный ${activityName} для восстановления`
         });
       }
     }
@@ -123,13 +138,13 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
         if (finalRest > 0) {
           intervals.push({
             duration: finalRest,
-            description: 'Медленный бег/езда/плавание для восстановления'
+            description: `Медленный ${activityName} для восстановления`
           });
         }
       } else {
         intervals.push({
           duration: remainingTime,
-          description: 'Медленный бег/езда/плавание для восстановления'
+          description: `Медленный ${activityName} для восстановления`
         });
       }
     }
