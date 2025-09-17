@@ -103,8 +103,14 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   useEffect(() => {
-    const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
-    const end = format(endOfMonth(currentDate), 'yyyy-MM-dd');
+    // Загружаем тренировки для всего диапазона календаря, включая дни предыдущего и следующего месяца
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    
+    const start = format(calendarStart, 'yyyy-MM-dd');
+    const end = format(calendarEnd, 'yyyy-MM-dd');
     onMonthChange(start, end);
   }, [currentDate, onMonthChange]);
 
