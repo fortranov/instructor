@@ -125,9 +125,8 @@ class PlanGenerator:
             days_since_monday = current_date.weekday()  # 0 = понедельник, 6 = воскресенье
             current_date = current_date + timedelta(days=7 - days_since_monday)
         
-        # Фильтровать все тренировки по предпочтительным дням пользователя
-        filtered_workouts = self._filter_workouts_by_preferred_days(workouts, plan.user_id)
-        return filtered_workouts
+        # Тренировки уже созданы с учетом предпочтительных дней в _schedule_weekly_workouts
+        return workouts
     
     def _filter_workouts_by_preferred_days(self, workouts: List[Dict], user_id: int) -> List[Dict]:
         """Фильтровать тренировки по предпочтительным дням пользователя"""
@@ -363,12 +362,10 @@ class PlanGenerator:
             ).all()
             completion_marks = {mark.workout_id: True for mark in marks}
         
-        # Фильтровать тренировки по предпочтительным дням пользователя
-        filtered_workouts = self._filter_workouts_by_preferred_days_from_db(workouts, user.id)
-        
         # Создать список словарей с информацией о выполнении
+        # Тренировки уже созданы с учетом предпочтительных дней, дополнительная фильтрация не нужна
         workout_responses = []
-        for workout in filtered_workouts:
+        for workout in workouts:
             workout_responses.append({
                 'id': workout.id,
                 'date': workout.date,
