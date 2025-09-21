@@ -25,10 +25,12 @@ class PlanGenerator:
         user = self.db.query(User).filter(User.uin == plan_data.uin).first()
         if not user:
             # Создаем пользователя с минимальными данными для генерации плана
+            import json
             user = User(
                 uin=plan_data.uin,
                 email=f"{plan_data.uin}@triplan.local",  # Временный email для генерации планов
-                hashed_password="temp_hash"  # Временный хеш пароля
+                hashed_password="temp_hash",  # Временный хеш пароля
+                preferred_workout_days=json.dumps([0, 1, 2, 3, 4, 5, 6])  # Дни недели по умолчанию (все дни)
             )
             self.db.add(user)
             self.db.flush()  # Получить ID пользователя
@@ -51,7 +53,7 @@ class PlanGenerator:
         self.db.add(new_plan)
         self.db.flush()  # Получить ID плана
         
-        # Генерировать тренировки
+        # Генерировать тренировки (уже отфильтрованные)
         workouts = self._generate_workouts(new_plan)
         
         # Добавить тренировки в базу данных
@@ -74,6 +76,9 @@ class PlanGenerator:
         """Генерировать тренировки для плана"""
         workouts = []
         
+        # Получить предпочтительные дни пользователя
+        user_preferred_days = self._get_user_preferred_days(plan.user_id)
+        
         # Определить виды спорта для типа соревнования
         sport_types = self.training_tables.get_sport_types_for_competition(plan.competition_type)
         
@@ -83,12 +88,15 @@ class PlanGenerator:
         weeks_to_competition = max(1, days_to_competition // 7)
         
         # Генерировать тренировки по неделям
-        current_date = today
+        # Начать с понедельника текущей недели
+        days_since_monday = today.weekday()  # 0 = понедельник, 6 = воскресенье
+        current_date = today - timedelta(days=days_since_monday)
         week_count = 0
         
         while current_date < plan.competition_date:
             week_count += 1
             weeks_remaining = max(1, (plan.competition_date - current_date).days // 7)
+            
             
             # Определить фазу тренировки
             phase = self.training_tables.get_training_phase(weeks_remaining)
@@ -108,15 +116,90 @@ class PlanGenerator:
             
             # Назначить даты тренировкам в течение недели
             week_workouts = self._schedule_weekly_workouts(
-                weekly_workouts, current_date, plan.competition_date
+                weekly_workouts, current_date, plan.competition_date, user_preferred_days
             )
             
             workouts.extend(week_workouts)
             
-            # Перейти к следующей неделе
-            current_date += timedelta(days=7)
+            # Перейти к следующей неделе (к понедельнику)
+            days_since_monday = current_date.weekday()  # 0 = понедельник, 6 = воскресенье
+            current_date = current_date + timedelta(days=7 - days_since_monday)
         
+        # Тренировки уже созданы с учетом предпочтительных дней в _schedule_weekly_workouts
         return workouts
+    
+    def _filter_workouts_by_preferred_days(self, workouts: List[Dict], user_id: int) -> List[Dict]:
+        """Фильтровать тренировки по предпочтительным дням пользователя"""
+        # Получить предпочтительные дни пользователя
+        preferred_days = self._get_user_preferred_days(user_id)
+        
+        filtered_workouts = []
+        
+        for workout in workouts:
+            # Получить день недели тренировки
+            workout_date = workout['date']
+            if isinstance(workout_date, str):
+                workout_date = date.fromisoformat(workout_date)
+            
+            day_of_week = workout_date.weekday()  # 0 = понедельник, 6 = воскресенье
+            
+            # Проверить, соответствует ли день предпочтительным дням
+            if day_of_week in preferred_days:
+                filtered_workouts.append(workout)
+            # Если день не в предпочтительных днях, тренировка исключается (не переносится)
+        
+        return filtered_workouts
+    
+    def _move_workout_to_preferred_day(self, workout: Dict, preferred_days: List[int]) -> Dict:
+        """Перенести тренировку на ближайший предпочтительный день"""
+        workout_date = workout['date']
+        if isinstance(workout_date, str):
+            workout_date = date.fromisoformat(workout_date)
+        
+        current_day = workout_date.weekday()
+        
+        # Найти ближайший предпочтительный день
+        min_distance = float('inf')
+        best_day = None
+        
+        for preferred_day in preferred_days:
+            # Рассчитать расстояние до предпочтительного дня
+            distance = (preferred_day - current_day) % 7
+            if distance == 0:
+                distance = 7  # Если это тот же день, перенести на следующую неделю
+            
+            if distance < min_distance:
+                min_distance = distance
+                best_day = preferred_day
+        
+        if best_day is not None:
+            # Перенести тренировку на найденный день
+            new_date = workout_date + timedelta(days=min_distance)
+            moved_workout = workout.copy()
+            moved_workout['date'] = new_date
+            return moved_workout
+        
+        return None
+    
+    def _filter_workouts_by_preferred_days_from_db(self, workouts: List, user_id: int) -> List:
+        """Фильтровать тренировки из базы данных по предпочтительным дням пользователя"""
+        # Получить предпочтительные дни пользователя
+        preferred_days = self._get_user_preferred_days(user_id)
+        
+        filtered_workouts = []
+        for workout in workouts:
+            # Получить день недели тренировки
+            workout_date = workout.date
+            if isinstance(workout_date, str):
+                workout_date = date.fromisoformat(workout_date)
+            
+            day_of_week = workout_date.weekday()  # 0 = понедельник, 6 = воскресенье
+            
+            # Проверить, соответствует ли день предпочтительным дням
+            if day_of_week in preferred_days:
+                filtered_workouts.append(workout)
+        
+        return filtered_workouts
     
     def _get_volume_multiplier(self, phase: str, weeks_remaining: int, week_number: int = None) -> float:
         """
@@ -168,29 +251,68 @@ class PlanGenerator:
         
         return base_multiplier
     
+    def _get_user_preferred_days(self, user_id: int) -> List[int]:
+        """Получить предпочтительные дни для тренировок пользователя"""
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user or not user.preferred_workout_days:
+            return [0, 1, 2, 3, 4, 5, 6]  # Дни недели по умолчанию (все дни)
+        
+        try:
+            import json
+            preferred_days = json.loads(user.preferred_workout_days)
+            return preferred_days
+        except (json.JSONDecodeError, TypeError):
+            return [0, 1, 2, 3, 4, 5, 6]  # Fallback к значению по умолчанию (все дни)
+    
     def _schedule_weekly_workouts(self, weekly_workouts: List, start_date: date, 
-                                competition_date: date) -> List[Dict]:
+                                competition_date: date, user_preferred_days: List[int] = None) -> List[Dict]:
         """Распределить тренировки по дням недели"""
         scheduled_workouts = []
         
         # Предпочтительные дни для тренировок (понедельник = 0, воскресенье = 6)
-        preferred_days = [0, 1, 2, 4, 5, 6]  # Исключаем среду как день отдыха
+        if user_preferred_days is not None:
+            preferred_days = user_preferred_days
+        else:
+            preferred_days = [0, 1, 2, 3, 4, 5, 6]  # Дни недели по умолчанию (все дни)
+        
         
         # Перемешать тренировки для разнообразия
         shuffled_workouts = weekly_workouts.copy()
         random.shuffle(shuffled_workouts)
         
-        # Распределить тренировки по дням
+        # Распределить тренировки по дням более равномерно
         for i, (sport_type, workout_type, duration) in enumerate(shuffled_workouts):
-            # Выбрать день недели
-            if i < len(preferred_days):
-                day_offset = preferred_days[i]
+            # Выбрать день недели из предпочтительных дней более равномерно
+            if len(preferred_days) > 0:
+                # Использовать более умное распределение для равномерного покрытия всех предпочтительных дней
+                # Если тренировок меньше чем предпочтительных дней, распределить равномерно
+                if len(shuffled_workouts) <= len(preferred_days):
+                    # Распределить тренировки равномерно по всем предпочтительным дням
+                    # Использовать равномерное распределение без пропусков
+                    day_index = i % len(preferred_days)
+                    preferred_day = preferred_days[day_index]
+                else:
+                    # Если тренировок больше чем предпочтительных дней,
+                    # распределить равномерно с повторением дней
+                    day_index = i % len(preferred_days)
+                    preferred_day = preferred_days[day_index]
             else:
-                # Если тренировок больше, чем предпочтительных дней
-                day_offset = i % 7
+                # Fallback к понедельнику если нет предпочтительных дней
+                preferred_day = 0
             
-            # Рассчитать дату тренировки
-            workout_date = start_date + timedelta(days=day_offset)
+            
+            # Рассчитать смещение от начала недели (понедельник = 0)
+            # start_date может быть любым днем недели, нужно найти понедельник этой недели
+            days_since_monday = start_date.weekday()  # 0 = понедельник, 6 = воскресенье
+            monday_of_week = start_date - timedelta(days=days_since_monday)
+            
+            # Добавить смещение до выбранного дня недели
+            workout_date = monday_of_week + timedelta(days=preferred_day)
+            
+            # Если дата тренировки в прошлом, перенести на следующую неделю
+            if workout_date < start_date:
+                # Перенести тренировку на следующую неделю в тот же день
+                workout_date = workout_date + timedelta(days=7)
             
             # Убедиться, что дата не превышает дату соревнования
             if workout_date >= competition_date:
@@ -240,9 +362,13 @@ class PlanGenerator:
             ).all()
             completion_marks = {mark.workout_id: True for mark in marks}
         
+        # Фильтровать тренировки по предпочтительным дням пользователя
+        # Это нужно для старых планов, которые могли быть созданы с другими предпочтениями
+        filtered_workouts = self._filter_workouts_by_preferred_days_from_db(workouts, user.id)
+        
         # Создать список словарей с информацией о выполнении
         workout_responses = []
-        for workout in workouts:
+        for workout in filtered_workouts:
             workout_responses.append({
                 'id': workout.id,
                 'date': workout.date,

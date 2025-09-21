@@ -21,6 +21,13 @@ help:
 	@echo "  make prod-up     - Start services in production mode with Nginx"
 	@echo "  make prod-down   - Stop production services"
 	@echo "  make prod-logs   - Show production logs"
+	@echo ""
+	@echo "Migrations:"
+	@echo "  make migrate     - Run database migrations in Docker"
+	@echo "  make migrate-status - Show migration status"
+	@echo "  make migrate-rollback - Rollback migrations"
+	@echo "  make migrate-local - Run migrations locally"
+	@echo "  make migrate-local-status - Show local migration status"
 
 # Build all images
 build:
@@ -89,6 +96,27 @@ health:
 # Database commands
 db-shell:
 	docker-compose exec backend python -c "from database import SessionLocal; session = SessionLocal(); print('Database shell ready')"
+
+# Migration commands
+migrate:
+	docker-compose up migrations
+
+migrate-status:
+	docker-compose exec backend python run_migrations.py status
+
+migrate-rollback:
+	@read -p "Enter version to rollback to: " version; \
+	docker-compose exec backend python run_migrations.py rollback --version $$version
+
+migrate-local:
+	cd backend && python run_migrations.py migrate
+
+migrate-local-status:
+	cd backend && python run_migrations.py status
+
+migrate-local-rollback:
+	@read -p "Enter version to rollback to: " version; \
+	cd backend && python run_migrations.py rollback --version $$version
 
 # Restart individual services
 restart-backend:

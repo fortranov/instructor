@@ -1,6 +1,7 @@
 # Docker Compose для Triplan
 
 services:
+
   # Backend FastAPI сервис
   backend:
     build:
@@ -16,6 +17,8 @@ services:
     volumes:
       # Монтируем директорию для базы данных
       - triplan_data:/app/data
+    depends_on:
+      - migrations  # Ждать выполнения миграций
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/v1/health')"]
       interval: 30s
@@ -24,7 +27,7 @@ services:
       start_period: 40s
     restart: unless-stopped
     networks:
-      - triplan-network
+      - reverse_proxy
 
   # Frontend Next.js приложение
   frontend:
@@ -40,28 +43,28 @@ services:
       - backend
     restart: unless-stopped
     networks:
-      - triplan-network
+      - reverse_proxy
 
   # Nginx reverse proxy для продакшена
-  nginx:
-    image: nginx:alpine
-    container_name: triplan-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
-    networks:
-      - triplan-network
+  #nginx:
+  #  image: nginx:alpine
+  #  container_name: triplan-nginx
+  #  ports:
+  #    - "80:80"
+  #    - "443:443"
+  #  volumes:
+  #    - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #    - ./nginx/ssl:/etc/nginx/ssl:ro
+  #  depends_on:
+  #    - frontend
+  #    - backend
+  #  restart: unless-stopped
+  #  networks:
+  #    - triplan-network
 
 # Создаем сеть для взаимодействия сервисов
 networks:
-  triplan-network:
+  reverse_proxy:
     driver: bridge
 
 # Создаем volume для данных базы
