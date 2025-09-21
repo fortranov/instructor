@@ -7,7 +7,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: triplan-backend
+    container_name: backend
     # Порт не пробрасываем наружу - доступ только через nginx
     environment:
       - PYTHONPATH=/app
@@ -33,7 +33,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: triplan-frontend
+    container_name: frontend
     # Порт не пробрасываем наружу - доступ только через nginx
     environment:
       - NODE_ENV=production
