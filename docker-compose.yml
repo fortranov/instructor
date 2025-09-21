@@ -12,13 +12,12 @@ services:
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
-      - SECRET_KEY=your-secret-key-change-in-production
+      - SECRET_KEY={SECRET_KEY}
       - DB_PATH=/app/data/triplan.db
     volumes:
       # Монтируем директорию для базы данных
       - triplan_data:/app/data
-    depends_on:
-      - migrations  # Ждать выполнения миграций
+   
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/v1/health')"]
       interval: 30s
