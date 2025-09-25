@@ -31,7 +31,6 @@ services:
 
   # Frontend Next.js приложение
   frontend:
-    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
