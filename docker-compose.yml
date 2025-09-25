@@ -42,9 +42,8 @@ services:
       - backend
     restart: unless-stopped
     networks:
-      - reverse_proxy:
-          name: reverse_proxy
-          external: true
+      - reverse_proxy
+          
 
   # Nginx reverse proxy для продакшена
   #nginx:
@@ -66,6 +65,8 @@ services:
 # Создаем сеть для взаимодействия сервисов
 networks:
   reverse_proxy:
+    name: reverse_proxy
+    external: true
     driver: bridge
 
 # Создаем volume для данных базы
