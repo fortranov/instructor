@@ -153,9 +153,23 @@ export default function ProfilePage() {
       return;
     }
 
+    if (preferredWorkoutDays.length === 0) {
+      setError('Выберите хотя бы один день для тренировок');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Сначала обновляем предпочтительные дни пользователя
+      const updateData = {
+        preferred_workout_days: preferredWorkoutDays,
+      };
+
+      const updatedUser = await apiClient.updateCurrentUser(updateData);
+      updateUser(updatedUser);
+
+      // Затем создаем план тренировок
       const planData = {
         uin: user.uin,
         complexity,

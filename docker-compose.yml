@@ -42,7 +42,9 @@ services:
       - backend
     restart: unless-stopped
     networks:
-      - reverse_proxy
+      - reverse_proxy:
+          name: reverse_proxy
+          external: true
 
   # Nginx reverse proxy для продакшена
   #nginx:

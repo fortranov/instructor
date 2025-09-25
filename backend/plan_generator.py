@@ -21,19 +21,17 @@ class PlanGenerator:
     def create_training_plan(self, plan_data: TrainingPlanCreate) -> TrainingPlan:
         """Создать персонализированный план тренировок"""
         
-        # Найти или создать пользователя
+        # Найти пользователя
         user = self.db.query(User).filter(User.uin == plan_data.uin).first()
         if not user:
-            # Создаем пользователя с минимальными данными для генерации плана
+            # Если пользователь не найден, это ошибка - пользователь должен существовать
+            raise ValueError(f"Пользователь с UIN {plan_data.uin} не найден. Создание плана невозможно.")
+        
+        # Убедиться, что у пользователя есть предпочтительные дни
+        if not user.preferred_workout_days:
             import json
-            user = User(
-                uin=plan_data.uin,
-                email=f"{plan_data.uin}@triplan.local",  # Временный email для генерации планов
-                hashed_password="temp_hash",  # Временный хеш пароля
-                preferred_workout_days=json.dumps([0, 1, 2, 3, 4, 5, 6])  # Дни недели по умолчанию (все дни)
-            )
-            self.db.add(user)
-            self.db.flush()  # Получить ID пользователя
+            user.preferred_workout_days = json.dumps([0, 1, 2, 3, 4, 5, 6])  # Дни недели по умолчанию (все дни)
+            self.db.flush()
         
         # Удалить существующий план пользователя, если есть
         existing_plan = self.db.query(TrainingPlan).filter(TrainingPlan.user_id == user.id).first()
