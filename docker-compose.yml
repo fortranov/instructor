@@ -4,6 +4,7 @@ services:
 
   # Backend FastAPI сервис
   backend:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -30,6 +31,7 @@ services:
 
   # Frontend Next.js приложение
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
