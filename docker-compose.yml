@@ -25,12 +25,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    restart: unless-stopped
     networks:
       - reverse_proxy
 
   # Frontend Next.js приложение
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -41,7 +41,6 @@ services:
       - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
-    restart: unless-stopped
     networks:
       - reverse_proxy
           
