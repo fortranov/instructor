@@ -11,6 +11,20 @@ import apiClient from '@/lib/api';
 import { CompetitionType, CompetitionTypesResponse } from '@/types/api';
 import { getErrorMessage, isValidEmail, isValidPassword } from '@/lib/utils';
 
+const arePreferredDaysEqual = (a?: number[], b?: number[]) => {
+  const normalize = (days?: number[]) =>
+    (days ?? []).slice().sort((dayA, dayB) => dayA - dayB);
+
+  const first = normalize(a);
+  const second = normalize(b);
+
+  if (first.length !== second.length) {
+    return false;
+  }
+
+  return first.every((day, index) => day === second[index]);
+};
+
 export default function ProfilePage() {
   const { user, isAuthenticated, loading: authLoading, updateUser } = useAuth();
   const router = useRouter();
@@ -156,6 +170,14 @@ export default function ProfilePage() {
     setLoading(true);
 
     try {
+      if (!arePreferredDaysEqual(preferredWorkoutDays, user.preferred_workout_days)) {
+        const updatedUser = await apiClient.updateCurrentUser({
+          preferred_workout_days: preferredWorkoutDays,
+        });
+        updateUser(updatedUser);
+        setPreferredWorkoutDays(updatedUser.preferred_workout_days || [0, 1, 2, 3, 4, 5, 6]);
+      }
+
       const planData = {
         uin: user.uin,
         complexity,
