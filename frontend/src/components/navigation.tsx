@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { useRouter, usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { Menu, X } from 'lucide-react';
 
 export default function Navigation() {
   const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -76,14 +79,33 @@ export default function Navigation() {
 
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">
-                  Привет, {user?.first_name || user?.email}!
-                </span>
-                <Button variant="outline" onClick={handleLogout}>
-                  Выйти
-                </Button>
-              </div>
+              <>
+                {/* Десктопное меню пользователя */}
+                <div className="hidden sm:flex items-center space-x-4">
+                  <span className="text-sm text-gray-700">
+                    Привет, {user?.first_name || user?.email}!
+                  </span>
+                  <Button variant="outline" onClick={handleLogout}>
+                    Выйти
+                  </Button>
+                </div>
+                
+                {/* Мобильная кнопка-гамбургер */}
+                <div className="sm:hidden">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="p-2"
+                  >
+                    {isMobileMenuOpen ? (
+                      <X className="h-6 w-6" />
+                    ) : (
+                      <Menu className="h-6 w-6" />
+                    )}
+                  </Button>
+                </div>
+              </>
             ) : (
               <div className="flex items-center space-x-4">
                 <Link href="/auth/login">
@@ -98,9 +120,9 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Мобильное меню */}
-      {isAuthenticated && (
-        <div className="sm:hidden border-t border-gray-200">
+      {/* Мобильное выпадающее меню */}
+      {isAuthenticated && isMobileMenuOpen && (
+        <div className="sm:hidden border-t border-gray-200 bg-white shadow-lg">
           <div className="pt-2 pb-3 space-y-1">
             <Link
               href="/dashboard"
@@ -109,6 +131,7 @@ export default function Navigation() {
                   ? 'text-primary bg-primary/10 border-r-4 border-primary'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
+              onClick={() => setIsMobileMenuOpen(false)}
             >
               Главная
             </Link>
@@ -119,6 +142,7 @@ export default function Navigation() {
                   ? 'text-primary bg-primary/10 border-r-4 border-primary'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
+              onClick={() => setIsMobileMenuOpen(false)}
             >
               План
             </Link>
@@ -129,6 +153,7 @@ export default function Navigation() {
                   ? 'text-primary bg-primary/10 border-r-4 border-primary'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
+              onClick={() => setIsMobileMenuOpen(false)}
             >
               Статистика
             </Link>
@@ -139,9 +164,31 @@ export default function Navigation() {
                   ? 'text-primary bg-primary/10 border-r-4 border-primary'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
+              onClick={() => setIsMobileMenuOpen(false)}
             >
               Профиль
             </Link>
+            
+            {/* Мобильная информация о пользователе и кнопка выхода */}
+            <div className="border-t border-gray-200 pt-4 pb-3">
+              <div className="px-3 mb-3">
+                <div className="text-sm text-gray-700">
+                  Привет, {user?.first_name || user?.email}!
+                </div>
+              </div>
+              <div className="px-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full"
+                >
+                  Выйти
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

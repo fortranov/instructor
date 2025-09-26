@@ -11,6 +11,9 @@ import Calendar from '@/components/calendar';
 import apiClient from '@/lib/api';
 import { Workout, TrainingPlan } from '@/types/api';
 import { getErrorMessage } from '@/lib/utils';
+import { RotateCcw } from 'lucide-react';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 export default function PlanPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -21,12 +24,36 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasCheckedPlan, setHasCheckedPlan] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/auth/login');
     }
   }, [isAuthenticated, authLoading, router]);
+
+  // Проверка ориентации устройства
+  useEffect(() => {
+    const checkOrientation = () => {
+      // Проверяем, что это мобильное устройство и находится в портретной ориентации
+      const isMobile = window.innerWidth <= 768;
+      const isPortraitOrientation = window.innerHeight > window.innerWidth;
+      setIsPortrait(isMobile && isPortraitOrientation);
+    };
+
+    // Проверяем при загрузке
+    checkOrientation();
+
+    // Добавляем слушатель изменения размера окна
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    // Очистка слушателей при размонтировании
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
 
   // Проверяем наличие плана у пользователя
   useEffect(() => {
@@ -227,14 +254,32 @@ export default function PlanPage() {
               </CardContent>
             </Card>
 
-            {/* Календарь тренировок */}
-            <Calendar
-              workouts={workouts}
-              onMonthChange={handleMonthChange}
-              onWorkoutMove={handleWorkoutMove}
-              onWorkoutToggle={handleWorkoutToggle}
-              loading={loading}
-            />
+            {/* Календарь тренировок или сообщение о повороте устройства */}
+            {isPortrait ? (
+              <Card className="mb-6">
+                <CardContent className="p-8 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <RotateCcw className="w-16 h-16 text-blue-500 animate-pulse" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Поверните устройство
+                      </h3>
+                      <p className="text-gray-600">
+                        Для удобного просмотра календаря тренировок поверните устройство в горизонтальное положение
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Calendar
+                workouts={workouts}
+                onMonthChange={handleMonthChange}
+                onWorkoutMove={handleWorkoutMove}
+                onWorkoutToggle={handleWorkoutToggle}
+                loading={loading}
+              />
+            )}
           </>
         )}
       </div>

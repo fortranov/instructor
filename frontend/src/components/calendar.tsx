@@ -17,7 +17,14 @@ import {
   useDraggable,
   useDroppable,
   closestCenter,
+  useSensors,
+  useSensor,
 } from '@dnd-kit/core';
+import {
+  TouchSensor,
+  MouseSensor,
+  PointerSensor,
+} from '@dnd-kit/sensors';
 import { CSS } from '@dnd-kit/utilities';
 
 interface CalendarProps {
@@ -101,6 +108,26 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
   const [draggedWorkoutWeek, setDraggedWorkoutWeek] = useState<Date | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Настройка сенсоров для поддержки мыши и touch событий
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    }),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
   
   useEffect(() => {
     // Загружаем тренировки для всего диапазона календаря, включая дни предыдущего и следующего месяца
@@ -230,6 +257,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
 
   return (
     <DndContext
+      sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
