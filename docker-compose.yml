@@ -4,7 +4,7 @@ services:
 
   # Backend FastAPI сервис
   backend:
-    restart: always
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -30,7 +30,7 @@ services:
 
   # Frontend Next.js приложение
   frontend:
-    restart: always
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -65,7 +65,7 @@ services:
 # Создаем сеть для взаимодействия сервисов
 networks:
   reverse_proxy:
-    name: reverse_proxy
+    name: main-network
     external: true
     driver: bridge
 
