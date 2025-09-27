@@ -92,6 +92,12 @@ class DatabaseMigrator:
     def create_tables_if_not_exist(self):
         """Создать основные таблицы если они не существуют"""
         try:
+            # Извлекаем путь к базе данных из DATABASE_URL
+            if self.database_url.startswith("sqlite:///"):
+                db_path = self.database_url.replace("sqlite:///", "")
+                # Устанавливаем переменную окружения для модуля database
+                os.environ["DB_PATH"] = db_path
+            
             # Импортируем модуль database из backend
             backend_path = os.path.join(os.path.dirname(__file__), 'backend')
             if os.path.exists(backend_path):
