@@ -51,7 +51,7 @@ if defined ADMIN_MIGRATION_TOKEN (
 
 REM Вариант 3: Прямой запуск миграций
 echo Running direct migration...
-python -c "from migrations import run_migrations; run_migrations()"
+python -c "from db_migrations import run_migrations; run_migrations()"
 
 echo Migration completed!
 pause

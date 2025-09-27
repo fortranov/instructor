@@ -41,7 +41,7 @@ curl -X POST "http://localhost:8000/api/v1/admin/migrate" \
 
 ```bash
 cd backend
-python -c "from migrations import run_migrations; run_migrations()"
+python -c "from db_migrations import run_migrations; run_migrations()"
 ```
 
 ### 4. Через готовые скрипты
@@ -75,10 +75,10 @@ ADMIN_MIGRATION_TOKEN="your-secret-token" docker-compose -f docker-compose.migra
 
 ```bash
 # Выполнить команду в существующем контейнере
-docker exec -it <container_name> python -c "from migrations import run_migrations; run_migrations()"
+docker exec -it <container_name> python -c "from db_migrations import run_migrations; run_migrations()"
 
 # Или через docker-compose
-docker-compose exec backend python -c "from migrations import run_migrations; run_migrations()"
+docker-compose exec backend python -c "from db_migrations import run_migrations; run_migrations()"
 ```
 
 ## Безопасность
@@ -96,7 +96,7 @@ docker-compose exec backend python -c "from migrations import run_migrations; ru
 curl "http://localhost:8000/api/v1/admin/schema"
 
 # Прямая проверка
-python -c "from migrations import check_database_schema; print(check_database_schema())"
+python -c "from db_migrations import check_database_schema; print(check_database_schema())"
 ```
 
 ## Логирование

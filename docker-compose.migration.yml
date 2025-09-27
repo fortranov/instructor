@@ -12,7 +12,7 @@ services:
     volumes:
       - ./triplan.db:/app/triplan.db  # Монтируем существующую БД
       - ./backend:/app  # Монтируем код для миграций
-    command: python -c "from migrations import run_migrations; run_migrations(); print('Migration completed')"
+    command: python -c "from db_migrations import run_migrations; run_migrations(); print('Migration completed')"
     restart: "no"  # Запускаем только один раз
 
   # Альтернативный способ - через существующий контейнер

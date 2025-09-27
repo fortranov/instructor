@@ -12,7 +12,7 @@ from api_routes import router
 from api_completion import completion_router
 from api_workouts import workouts_router
 from api_statistics import statistics_router
-from migrations import run_migrations, check_database_schema
+from db_migrations import run_migrations, check_database_schema
 import os
 
 # Создание таблиц при запуске приложения
