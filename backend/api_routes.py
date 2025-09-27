@@ -18,10 +18,13 @@ from schemas import (
     Token,
     UserResponse,
     UserUpdate,
-    WorkoutDateUpdate
+    WorkoutDateUpdate,
+    PlanWizardRequest,
+    PlanWizardResponse
 )
 # Удалены импорты simple_schemas - endpoints перенесены в отдельные файлы
 from plan_generator import PlanGenerator
+from plan_wizard import calculate_plan_complexity, determine_competition_type
 from auth import (
     authenticate_user,
     create_user,
@@ -111,6 +114,62 @@ async def delete_training_plan(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"План тренировок для пользователя {uin} не найден"
+        )
+
+@router.post("/plans/wizard", response_model=PlanWizardResponse, status_code=status.HTTP_201_CREATED)
+async def create_plan_with_wizard(
+    wizard_data: PlanWizardRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Создать план тренировок с помощью мастера.
+    
+    Мастер анализирует ответы пользователя и автоматически рассчитывает
+    оптимальную сложность плана и тип соревнования.
+    """
+    try:
+        # Рассчитываем сложность плана на основе ответов
+        complexity = calculate_plan_complexity(
+            weekly_distance=wizard_data.weekly_distance,
+            comfortable_pace=wizard_data.comfortable_pace,
+            target_distance=wizard_data.target_distance,
+            competition_date=wizard_data.competition_date,
+            has_specific_goal=wizard_data.has_specific_goal
+        )
+        
+        # Определяем тип соревнования
+        competition_type = determine_competition_type(wizard_data.target_distance)
+        
+        # Обновляем данные пользователя с информацией о соревновании
+        current_user.competition_date = wizard_data.competition_date
+        current_user.competition_type = competition_type
+        current_user.updated_at = datetime.utcnow()
+        db.commit()
+        
+        # Создаем план тренировок
+        plan_data = TrainingPlanCreate(
+            uin=current_user.uin,
+            complexity=complexity,
+            competition_date=wizard_data.competition_date,
+            competition_type=competition_type,
+            competition_distance=None  # Для бега дистанция не нужна
+        )
+        
+        generator = PlanGenerator(db)
+        plan = generator.create_training_plan(plan_data)
+        
+        return PlanWizardResponse(
+            complexity=complexity,
+            competition_type=competition_type,
+            competition_date=wizard_data.competition_date,
+            plan_id=plan.id
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка создания плана через мастер: {str(e)}"
         )
 
 @router.put("/plans/{uin}/workouts/update-date", status_code=status.HTTP_200_OK)

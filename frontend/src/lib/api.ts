@@ -13,7 +13,9 @@ import {
   WorkoutTypeOption,
   WorkoutDateUpdate,
   WorkoutCompletionMarkCreate,
-  WorkoutCompletionMarkResponse
+  WorkoutCompletionMarkResponse,
+  PlanWizardRequest,
+  PlanWizardResponse
 } from '@/types/api';
 
 // Всегда используем относительный путь - это работает как в dev, так и в production
@@ -158,6 +160,11 @@ class ApiClient {
   // Методы для отметок выполнения тренировок
   async markWorkoutCompleted(workoutId: number, completionData: WorkoutCompletionMarkCreate): Promise<WorkoutCompletionMarkResponse> {
     return this.request<WorkoutCompletionMarkResponse>('POST', `/workouts/${workoutId}/completion`, completionData);
+  }
+
+  // Мастер создания планов
+  async createPlanWithWizard(wizardData: PlanWizardRequest): Promise<PlanWizardResponse> {
+    return this.request<PlanWizardResponse>('POST', '/plans/wizard', wizardData);
   }
 
   async unmarkWorkoutCompleted(workoutId: number): Promise<void> {

@@ -90,6 +90,20 @@ class WorkoutDateUpdate(BaseModel):
     workout_id: int = Field(..., description="ID тренировки")
     new_date: date = Field(..., description="Новая дата тренировки")
 
+# Схемы для мастера создания планов
+class PlanWizardRequest(BaseModel):
+    weekly_distance: str = Field(..., description="Недельный километраж")
+    comfortable_pace: str = Field(..., description="Комфортный темп бега")
+    target_distance: str = Field(..., description="Целевая дистанция")
+    competition_date: date = Field(..., description="Дата соревнования")
+    has_specific_goal: bool = Field(..., description="Есть ли конкретная цель")
+
+class PlanWizardResponse(BaseModel):
+    complexity: int = Field(..., description="Рассчитанная сложность плана")
+    competition_type: CompetitionType = Field(..., description="Определенный тип соревнования")
+    competition_date: date = Field(..., description="Дата соревнования")
+    plan_id: int = Field(..., description="ID созданного плана")
+
 # Простые схемы для ответов (без вложенных коллекций)
 class SimpleWorkoutsByDateResponse(BaseModel):
     """Простой ответ с тренировками без вложенных объектов"""

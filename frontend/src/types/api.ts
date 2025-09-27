@@ -134,3 +134,18 @@ export interface WorkoutCompletionMarkResponse {
   date: string;
   completed_at: string;
 }
+
+export interface PlanWizardRequest {
+  weekly_distance: string;
+  comfortable_pace: string;
+  target_distance: string;
+  competition_date: string;
+  has_specific_goal: boolean;
+}
+
+export interface PlanWizardResponse {
+  complexity: number;
+  competition_type: CompetitionType;
+  competition_date: string;
+  plan_id: number;
+}

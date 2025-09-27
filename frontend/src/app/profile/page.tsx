@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Navigation from '@/components/navigation';
+import PlanWizardModal, { PlanWizardData } from '@/components/plan-wizard-modal';
 import apiClient from '@/lib/api';
-import { CompetitionType, CompetitionTypesResponse } from '@/types/api';
+import { CompetitionType, CompetitionTypesResponse, PlanWizardRequest } from '@/types/api';
 import { getErrorMessage, isValidEmail, isValidPassword } from '@/lib/utils';
+import { ChevronDown, Wand2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, isAuthenticated, loading: authLoading, updateUser } = useAuth();
@@ -37,6 +39,11 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Состояния мастера планов
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isManualSettingsOpen, setIsManualSettingsOpen] = useState(false);
+  const [wizardLoading, setWizardLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -210,6 +217,36 @@ export default function ProfilePage() {
     });
   };
 
+  const handleWizardSubmit = async (wizardData: PlanWizardData) => {
+    if (!user?.uin) {
+      setError('Ошибка: не удается определить пользователя');
+      return;
+    }
+
+    setWizardLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const wizardRequest: PlanWizardRequest = {
+        weekly_distance: wizardData.weeklyDistance,
+        comfortable_pace: wizardData.comfortablePace,
+        target_distance: wizardData.targetDistance,
+        competition_date: wizardData.competitionDate,
+        has_specific_goal: wizardData.hasSpecificGoal,
+      };
+
+      const response = await apiClient.createPlanWithWizard(wizardRequest);
+      
+      setSuccess(`План тренировок успешно создан! Сложность: ${response.complexity}. Перейдите в раздел "План" для просмотра.`);
+      setIsWizardOpen(false);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setWizardLoading(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -348,11 +385,40 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle>План тренировок</CardTitle>
               <CardDescription>
-                Создайте или обновите свой план тренировок
+                Создайте персонализированный план тренировок
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleCreatePlan} className="space-y-4">
+              {/* Кнопка мастера планов */}
+              <div className="mb-6">
+                <Button
+                  onClick={() => setIsWizardOpen(true)}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
+                  disabled={loading || wizardLoading}
+                >
+                  <Wand2 className="w-5 h-5" />
+                  <span>Мастер создания планов</span>
+                </Button>
+                <p className="text-sm text-gray-500 mt-2 text-center">
+                  Ответьте на несколько вопросов, и мы создадим идеальный план для вас
+                </p>
+              </div>
+
+              {/* Выпадающий список для ручной настройки */}
+              <div className="border-t pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsManualSettingsOpen(!isManualSettingsOpen)}
+                  className="w-full flex items-center justify-between p-3 text-left text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                  disabled={loading || wizardLoading}
+                >
+                  <span>Ручная настройка плана</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isManualSettingsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isManualSettingsOpen && (
+                  <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <form onSubmit={handleCreatePlan} className="space-y-4">
                 <div>
                   <label htmlFor="complexity" className="block text-sm font-medium text-gray-700 mb-1">
                     Уровень сложности: {complexity}
@@ -470,14 +536,25 @@ export default function ProfilePage() {
                   </p>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? 'Создание плана...' : 'Создать план тренировок'}
-                </Button>
-              </form>
+                      <Button type="submit" disabled={loading} className="w-full">
+                        {loading ? 'Создание плана...' : 'Создать план тренировок'}
+                      </Button>
+                    </form>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Модальное окно мастера планов */}
+      <PlanWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onSubmit={handleWizardSubmit}
+        loading={wizardLoading}
+      />
     </div>
   );
 }
