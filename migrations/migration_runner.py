@@ -109,7 +109,12 @@ class DatabaseMigrator:
         """Выполнить все миграции"""
         logger.info("Starting database migrations...")
         
-        # Создаем таблицы если их нет
+        # Сначала запускаем продвинутую систему миграций
+        if not self.run_advanced_migrations():
+            logger.error("Advanced migrations failed")
+            return False
+        
+        # Создаем таблицы если их нет (для совместимости)
         if not self.create_tables_if_not_exist():
             logger.error("Failed to create database tables")
             return False
@@ -118,9 +123,10 @@ class DatabaseMigrator:
         current_schema = self.get_current_schema()
         logger.info(f"Current database schema: {current_schema}")
         
-        # Список миграций
+        # Список простых миграций (для совместимости)
         migrations = [
             ("add_user_competition_fields", self.migration_add_user_competition_fields),
+            ("ensure_project_ready", self.migration_ensure_project_ready),
             # Здесь можно добавить новые миграции
         ]
         
@@ -131,8 +137,43 @@ class DatabaseMigrator:
             if self.run_migration(migration_name, migration_func):
                 success_count += 1
         
-        logger.info(f"Migrations completed: {success_count}/{total_migrations} successful")
+        logger.info(f"Simple migrations completed: {success_count}/{total_migrations} successful")
         return success_count == total_migrations
+    
+    def run_advanced_migrations(self):
+        """Запустить продвинутую систему миграций"""
+        try:
+            logger.info("Running advanced migration system...")
+            
+            # Импортируем менеджер миграций
+            backend_path = os.path.join(os.path.dirname(__file__), 'backend')
+            if os.path.exists(backend_path):
+                sys.path.append(backend_path)
+            
+            from migrations.migration_manager import MigrationManager
+            
+            # Извлекаем путь к базе данных
+            if self.database_url.startswith("sqlite:///"):
+                db_path = self.database_url.replace("sqlite:///", "")
+            else:
+                db_path = "triplan.db"  # fallback
+            
+            # Создаем менеджер миграций
+            manager = MigrationManager(db_path)
+            
+            # Запускаем все ожидающие миграции
+            success = manager.run_migrations()
+            
+            if success:
+                logger.info("Advanced migrations completed successfully")
+            else:
+                logger.error("Some advanced migrations failed")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Failed to run advanced migrations: {e}")
+            return False
     
     def migration_add_user_competition_fields(self, migrator):
         """Миграция: добавление полей competition_date и competition_type в таблицу users"""
@@ -146,6 +187,71 @@ class DatabaseMigrator:
         if not migrator.add_column("users", "competition_type", "VARCHAR", nullable=True):
             success = False
             
+        return success
+    
+    def migration_ensure_project_ready(self, migrator):
+        """Миграция: обеспечение готовности проекта к запуску"""
+        success = True
+        
+        logger.info("🔍 Проверяем готовность базы данных для запуска проекта...")
+        
+        try:
+            # Получаем текущую схему
+            current_schema = migrator.get_current_schema()
+            
+            # Проверяем наличие всех необходимых таблиц
+            required_tables = ['users', 'training_plans', 'workouts', 'workout_completion_marks']
+            existing_tables = list(current_schema.keys())
+            missing_tables = [table for table in required_tables if table not in existing_tables]
+            
+            if missing_tables:
+                logger.warning(f"Отсутствуют таблицы: {missing_tables}")
+                logger.info("Таблицы будут созданы автоматически при запуске приложения")
+            
+            # Проверяем наличие необходимых полей в таблице users
+            if 'users' in existing_tables:
+                user_columns = current_schema['users']
+                
+                # Добавляем поле предпочитаемых дней тренировок если его нет
+                if 'preferred_workout_days' not in user_columns:
+                    if not migrator.add_column("users", "preferred_workout_days", "VARCHAR", nullable=True):
+                        success = False
+                    else:
+                        logger.info("✅ Добавлено поле preferred_workout_days в таблицу users")
+                
+                # Проверяем поля соревнований
+                if 'competition_date' not in user_columns:
+                    if not migrator.add_column("users", "competition_date", "DATE", nullable=True):
+                        success = False
+                    else:
+                        logger.info("✅ Добавлено поле competition_date в таблицу users")
+                
+                if 'competition_type' not in user_columns:
+                    if not migrator.add_column("users", "competition_type", "VARCHAR", nullable=True):
+                        success = False
+                    else:
+                        logger.info("✅ Добавлено поле competition_type в таблицу users")
+            
+            # Создаем индексы для производительности
+            try:
+                with migrator.engine.connect() as conn:
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_training_plans_user_id ON training_plans(user_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workouts_plan_id ON workouts(plan_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts(date)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workout_completion_marks_workout_id ON workout_completion_marks(workout_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_workout_completion_marks_user_id ON workout_completion_marks(user_id)"))
+                    conn.commit()
+                    logger.info("✅ Созданы индексы для оптимизации производительности")
+            except Exception as e:
+                logger.warning(f"Предупреждение при создании индексов: {e}")
+            
+            logger.info("🎉 База данных готова к запуску проекта!")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при проверке готовности проекта: {e}")
+            success = False
+        
         return success
 
 def main():

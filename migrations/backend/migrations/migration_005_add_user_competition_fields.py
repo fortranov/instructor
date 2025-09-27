@@ -2,26 +2,49 @@
 Миграция 005: Добавление полей соревнования в таблицу пользователей
 """
 
-from sqlalchemy import text
+import sqlite3
+import os
 
-def upgrade(connection):
+# Метаданные миграции
+version = "005_add_user_competition_fields"
+description = "Добавление полей соревнования в таблицу пользователей"
+
+def up():
     """Добавляем поля для хранения информации о соревновании пользователя"""
     
-    # Добавляем поле для даты соревнования
-    connection.execute(text("""
-        ALTER TABLE users 
-        ADD COLUMN competition_date DATE NULL
-    """))
+    # Получаем путь к базе данных
+    db_path = os.getenv("DB_PATH", "../../triplan.db")
     
-    # Добавляем поле для типа соревнования
-    connection.execute(text("""
-        ALTER TABLE users 
-        ADD COLUMN competition_type VARCHAR(50) NULL
-    """))
+    # Подключаемся к базе данных
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
     
-    print("✅ Миграция 005: Добавлены поля competition_date и competition_type в таблицу users")
+    try:
+        # Проверяем существующие поля
+        cursor.execute("PRAGMA table_info(users)")
+        existing_columns = [col[1] for col in cursor.fetchall()]
+        
+        # Добавляем поле для даты соревнования если его нет
+        if 'competition_date' not in existing_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN competition_date DATE")
+            print("✅ Добавлено поле competition_date")
+        else:
+            print("ℹ️  Поле competition_date уже существует")
+        
+        # Добавляем поле для типа соревнования если его нет
+        if 'competition_type' not in existing_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN competition_type VARCHAR")
+            print("✅ Добавлено поле competition_type")
+        else:
+            print("ℹ️  Поле competition_type уже существует")
+        
+        conn.commit()
+        print("✅ Миграция 005: Поля соревнований готовы")
+        
+    finally:
+        conn.close()
 
-def downgrade(connection):
+def down():
     """Откат миграции - удаляем добавленные поля"""
     
     # SQLite не поддерживает DROP COLUMN, поэтому создаем новую таблицу без этих полей
