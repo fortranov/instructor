@@ -1,154 +1,126 @@
-# Makefile для управления Triplan проектом
+# Triplan Docker Commands
 
-.PHONY: help build up down migrate check validate backup rollback deploy logs clean
+.PHONY: help build up down logs clean dev-up dev-down prod-up prod-down
 
-# Переменные
-COMPOSE_FILE = docker-compose.production.yml
-MIGRATION_SCRIPT = scripts/migrate.sh
-MIGRATION_SCRIPT_WIN = scripts/migrate.bat
-
-# Определяем операционную систему
-ifeq ($(OS),Windows_NT)
-    MIGRATE_CMD = $(MIGRATION_SCRIPT_WIN)
-    RM_CMD = del /s /q
-    MKDIR_CMD = mkdir
-else
-    MIGRATE_CMD = ./$(MIGRATION_SCRIPT)
-    RM_CMD = rm -rf
-    MKDIR_CMD = mkdir -p
-endif
-
-help: ## Показать справку
-	@echo "Triplan Project Management"
-	@echo ""
+# Default target
+help:
 	@echo "Available commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@echo "  make build       - Build all Docker images"
+	@echo "  make up          - Start all services"
+	@echo "  make down        - Stop all services"
+	@echo "  make logs        - Show logs for all services"
+	@echo "  make clean       - Remove containers, networks, and volumes"
+	@echo "  make rebuild     - Rebuild all images from scratch"
+	@echo ""
+	@echo "Development:"
+	@echo "  make dev-up      - Start services in development mode"
+	@echo "  make dev-down    - Stop development services"
+	@echo "  make dev-logs    - Show development logs"
+	@echo ""
+	@echo "Production:"
+	@echo "  make prod-up     - Start services in production mode with Nginx"
+	@echo "  make prod-down   - Stop production services"
+	@echo "  make prod-logs   - Show production logs"
+	@echo ""
+	@echo "Migrations:"
+	@echo "  make migrate     - Run database migrations in Docker"
+	@echo "  make migrate-status - Show migration status"
+	@echo "  make migrate-rollback - Rollback migrations"
+	@echo "  make migrate-local - Run migrations locally"
+	@echo "  make migrate-local-status - Show local migration status"
 
-build: ## Собрать Docker образы
-	@echo "Building Docker images..."
-	docker-compose -f $(COMPOSE_FILE) build
+# Build all images
+build:
+	docker-compose build
 
-up: ## Запустить все сервисы
-	@echo "Starting services..."
-	docker-compose -f $(COMPOSE_FILE) up -d
+# Start all services
+up:
+	docker-compose up -d --build
 
-down: ## Остановить все сервисы
-	@echo "Stopping services..."
-	docker-compose -f $(COMPOSE_FILE) down
+# Stop all services
+down:
+	docker-compose down
 
-migrate: ## Выполнить миграции базы данных
-	@echo "Running database migrations..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		$(MIGRATE_CMD) migrate; \
-	else \
-		chmod +x $(MIGRATE_CMD) && $(MIGRATE_CMD) migrate; \
-	fi
+# Show logs
+logs:
+	docker-compose logs -f
 
-check: ## Проверить схему базы данных
-	@echo "Checking database schema..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		$(MIGRATE_CMD) check; \
-	else \
-		chmod +x $(MIGRATE_CMD) && $(MIGRATE_CMD) check; \
-	fi
-
-validate: ## Валидировать миграции
-	@echo "Validating migrations..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		$(MIGRATE_CMD) validate; \
-	else \
-		chmod +x $(MIGRATE_CMD) && $(MIGRATE_CMD) validate; \
-	fi
-
-backup: ## Создать резервную копию базы данных
-	@echo "Creating database backup..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		$(MIGRATE_CMD) backup; \
-	else \
-		chmod +x $(MIGRATE_CMD) && $(MIGRATE_CMD) backup; \
-	fi
-
-rollback: ## Откатить к последней резервной копии
-	@echo "Rolling back to last backup..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		$(MIGRATE_CMD) rollback; \
-	else \
-		chmod +x $(MIGRATE_CMD) && $(MIGRATE_CMD) rollback; \
-	fi
-
-deploy: ## Полный деплой с миграциями
-	@echo "Starting full deployment..."
-	@if [ "$(OS)" = "Windows_NT" ]; then \
-		$(MIGRATE_CMD) deploy; \
-	else \
-		chmod +x $(MIGRATE_CMD) && $(MIGRATE_CMD) deploy; \
-	fi
-
-logs: ## Показать логи сервисов
-	@echo "Showing service logs..."
-	docker-compose -f $(COMPOSE_FILE) logs -f
-
-logs-backend: ## Показать логи backend
-	@echo "Showing backend logs..."
-	docker-compose -f $(COMPOSE_FILE) logs -f backend
-
-logs-migration: ## Показать логи миграций
-	@echo "Showing migration logs..."
-	docker-compose -f $(COMPOSE_FILE) logs migration
-
-status: ## Показать статус сервисов
-	@echo "Service status:"
-	docker-compose -f $(COMPOSE_FILE) ps
-
-clean: ## Очистить неиспользуемые Docker ресурсы
-	@echo "Cleaning up Docker resources..."
+# Clean up everything
+clean:
+	docker-compose down -v --rmi all --remove-orphans
 	docker system prune -f
-	docker volume prune -f
 
-clean-all: ## Очистить все Docker ресурсы (включая образы)
-	@echo "Cleaning up all Docker resources..."
-	docker system prune -a -f
-	docker volume prune -f
-
-setup: ## Первоначальная настройка проекта
-	@echo "Setting up project..."
-	$(MKDIR_CMD) data backups logs nginx/ssl
-	@if [ ! -f "nginx/ssl/cert.pem" ]; then \
-		echo "Creating self-signed SSL certificate..."; \
-		openssl req -x509 -newkey rsa:4096 -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"; \
-	fi
-	@echo "Project setup completed!"
-
-dev: ## Запустить в режиме разработки
-	@echo "Starting development environment..."
+# Rebuild everything from scratch
+rebuild:
+	docker-compose down --rmi all
+	docker-compose build --no-cache
 	docker-compose up -d
 
-prod: ## Запустить в режиме продакшена
-	@echo "Starting production environment..."
-	$(MAKE) setup
-	$(MAKE) deploy
+# Development commands
+dev-up:
+	docker-compose -f docker-compose.dev.yml up -d --build
 
-restart: ## Перезапустить сервисы
-	@echo "Restarting services..."
-	$(MAKE) down
-	$(MAKE) up
+dev-down:
+	docker-compose -f docker-compose.dev.yml down
 
-health: ## Проверить здоровье сервисов
-	@echo "Checking service health..."
-	@curl -f http://localhost:8000/api/v1/health || echo "Backend health check failed"
+dev-logs:
+	docker-compose -f docker-compose.dev.yml logs -f
 
-# Специальные команды для миграций
-migrate-check: migrate check ## Выполнить миграции и проверить схему
-migrate-validate: migrate validate ## Выполнить миграции и валидировать
-migrate-backup: backup migrate ## Создать бэкап и выполнить миграции
+# Production commands with Nginx
+prod-up:
+	docker-compose --profile production up -d --build
 
-# Команды для мониторинга
-monitor: ## Мониторинг сервисов
-	@echo "Monitoring services..."
-	@while true; do \
-		echo "=== $(date) ==="; \
-		$(MAKE) status; \
-		$(MAKE) health; \
-		echo ""; \
-		sleep 30; \
-	done
+prod-down:
+	docker-compose --profile production down
+
+prod-logs:
+	docker-compose --profile production logs -f
+
+# Individual service commands
+backend-logs:
+	docker-compose logs -f backend
+
+frontend-logs:
+	docker-compose logs -f frontend
+
+nginx-logs:
+	docker-compose logs -f nginx
+
+# Health checks
+health:
+	@echo "Checking backend health..."
+	@curl -f http://localhost:8000/api/v1/health || echo "Backend not healthy"
+	@echo "Checking frontend..."
+	@curl -f http://localhost:3000 || echo "Frontend not accessible"
+
+# Database commands
+db-shell:
+	docker-compose exec backend python -c "from database import SessionLocal; session = SessionLocal(); print('Database shell ready')"
+
+# Migration commands
+migrate:
+	docker-compose up migrations
+
+migrate-status:
+	docker-compose exec backend python run_migrations.py status
+
+migrate-rollback:
+	@read -p "Enter version to rollback to: " version; \
+	docker-compose exec backend python run_migrations.py rollback --version $$version
+
+migrate-local:
+	cd backend && python run_migrations.py migrate
+
+migrate-local-status:
+	cd backend && python run_migrations.py status
+
+migrate-local-rollback:
+	@read -p "Enter version to rollback to: " version; \
+	cd backend && python run_migrations.py rollback --version $$version
+
+# Restart individual services
+restart-backend:
+	docker-compose restart backend
+
+restart-frontend:
+	docker-compose restart frontend

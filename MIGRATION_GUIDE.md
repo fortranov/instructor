@@ -1,161 +1,289 @@
 # Руководство по миграциям базы данных
 
-## Варианты запуска миграций на production сервере
+## Обзор
 
-### 1. Через переменную окружения (рекомендуемый)
+Универсальная система миграций базы данных с использованием отдельного Docker контейнера. Поддерживает SQLite, PostgreSQL и MySQL.
 
-Самый простой способ - установить переменную окружения `RUN_MIGRATIONS=true` и перезапустить backend:
+## Структура
+
+```
+migrations/
+├── Dockerfile              # Docker образ для миграций
+├── requirements.txt        # Python зависимости для миграций
+└── migration_runner.py     # Основной скрипт миграций
+
+docker-compose.migration.yml # Docker Compose для миграций
+migrate.sh                   # Скрипт для Linux/macOS
+migrate.bat                  # Скрипт для Windows
+env.migration.example        # Пример переменных окружения
+```
+
+## Быстрый старт
+
+### 1. SQLite (по умолчанию)
 
 ```bash
 # Linux/macOS
-export RUN_MIGRATIONS=true
-python main.py
+chmod +x migrate.sh
+./migrate.sh
 
 # Windows
-set RUN_MIGRATIONS=true
-python main.py
-```
+migrate.bat
 
-Миграции выполнятся автоматически при запуске приложения.
-
-### 2. Через HTTP endpoint
-
-Если backend уже запущен, можно выполнить миграции через API:
-
-```bash
-# Установить токен безопасности
-export ADMIN_MIGRATION_TOKEN="your-secret-token"
-
-# Запустить backend (если не запущен)
-python main.py &
-
-# Выполнить миграцию
-curl -X POST "http://localhost:8000/api/v1/admin/migrate" \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer your-secret-token"
-```
-
-### 3. Прямой запуск миграций
-
-Без запуска всего приложения:
-
-```bash
-cd backend
-python -c "from db_migrations import run_migrations; run_migrations()"
-```
-
-### 4. Через готовые скрипты
-
-Используйте готовые скрипты:
-
-```bash
-# Linux/macOS
-chmod +x backend/run_migration.sh
-./backend/run_migration.sh
-
-# Windows
-backend\run_migration.bat
-```
-
-### 5. Через Docker (без отдельного контейнера)
-
-Если используете Docker Compose:
-
-```bash
-# Вариант 1: Прямая миграция
+# Или через Docker Compose
 docker-compose -f docker-compose.migration.yml run --rm migration
-
-# Вариант 2: Через HTTP endpoint
-ADMIN_MIGRATION_TOKEN="your-secret-token" docker-compose -f docker-compose.migration.yml run --rm backend-migration
 ```
 
-### 6. Через существующий контейнер
-
-Если backend уже запущен в контейнере:
+### 2. PostgreSQL
 
 ```bash
-# Выполнить команду в существующем контейнере
-docker exec -it <container_name> python -c "from db_migrations import run_migrations; run_migrations()"
+# Через переменную окружения
+export DATABASE_URL="postgresql://username:password@localhost:5432/triplan"
+./migrate.sh
 
-# Или через docker-compose
-docker-compose exec backend python -c "from db_migrations import run_migrations; run_migrations()"
+# Или через профиль Docker Compose
+DATABASE_URL="postgresql://username:password@localhost:5432/triplan" \
+docker-compose -f docker-compose.migration.yml --profile postgres run --rm migration-postgres
+```
+
+### 3. MySQL
+
+```bash
+# Через переменную окружения
+export DATABASE_URL="mysql://username:password@localhost:3306/triplan"
+./migrate.sh
+
+# Или через профиль Docker Compose
+DATABASE_URL="mysql://username:password@localhost:3306/triplan" \
+docker-compose -f docker-compose.migration.yml --profile mysql run --rm migration-mysql
+```
+
+## Опции командной строки
+
+### migrate.sh / migrate.bat
+
+```bash
+# Основные опции
+-d, --database URL     URL базы данных
+-e, --env FILE         Файл с переменными окружения
+-h, --help             Показать справку
+-v, --verbose          Подробный вывод
+--dry-run              Показать что будет выполнено
+--check                Только проверить схему БД
+```
+
+### Примеры использования
+
+```bash
+# Проверить схему базы данных
+./migrate.sh --check
+
+# Показать что будет выполнено (без фактического выполнения)
+./migrate.sh --dry-run
+
+# Миграция конкретной базы данных
+./migrate.sh -d "sqlite:///./production.db"
+
+# Использовать файл переменных окружения
+./migrate.sh -e .env.migration
+
+# Подробный вывод
+./migrate.sh -v
+```
+
+## Переменные окружения
+
+### Основные
+
+- `DATABASE_URL` - URL базы данных (по умолчанию: `sqlite:///./triplan.db`)
+- `POSTGRES_URL` - URL PostgreSQL базы данных
+- `MYSQL_URL` - URL MySQL базы данных
+
+### Форматы URL
+
+```bash
+# SQLite
+DATABASE_URL=sqlite:///./triplan.db
+DATABASE_URL=sqlite:////absolute/path/to/database.db
+
+# PostgreSQL
+DATABASE_URL=postgresql://username:password@host:port/database
+DATABASE_URL=postgresql://user:pass@localhost:5432/triplan
+
+# MySQL
+DATABASE_URL=mysql://username:password@host:port/database
+DATABASE_URL=mysql://user:pass@localhost:3306/triplan
+```
+
+## Текущие миграции
+
+### migration_add_user_competition_fields
+
+Добавляет поля в таблицу `users`:
+- `competition_date` (DATE, nullable)
+- `competition_type` (VARCHAR, nullable)
+
+## Добавление новых миграций
+
+### 1. Создание функции миграции
+
+В файле `migrations/migration_runner.py` добавьте новую функцию:
+
+```python
+def migration_your_new_migration(self):
+    """Описание миграции"""
+    success = True
+    
+    # Ваша логика миграции
+    if not self.add_column("table_name", "column_name", "VARCHAR", nullable=True):
+        success = False
+    
+    return success
+```
+
+### 2. Регистрация миграции
+
+Добавьте миграцию в список `migrations` в методе `run_all_migrations`:
+
+```python
+migrations = [
+    ("add_user_competition_fields", self.migration_add_user_competition_fields),
+    ("your_new_migration", self.migration_your_new_migration),  # Добавить здесь
+]
 ```
 
 ## Безопасность
 
-- Установите переменную `ADMIN_MIGRATION_TOKEN` для защиты endpoints миграций
-- В production используйте сложный токен
-- Миграции выполняются идемпотентно - безопасно запускать несколько раз
+### Production рекомендации
 
-## Проверка схемы базы данных
+1. **Резервное копирование**
+   ```bash
+   # SQLite
+   cp triplan.db triplan.db.backup
+   
+   # PostgreSQL
+   pg_dump -h localhost -U username triplan > backup.sql
+   
+   # MySQL
+   mysqldump -h localhost -u username triplan > backup.sql
+   ```
 
-Для проверки текущей схемы:
+2. **Тестирование миграций**
+   ```bash
+   # Сначала проверьте что будет выполнено
+   ./migrate.sh --dry-run
+   
+   # Затем выполните на тестовой базе
+   ./migrate.sh -d "sqlite:///./test.db"
+   ```
+
+3. **Мониторинг**
+   ```bash
+   # Проверьте схему после миграции
+   ./migrate.sh --check
+   ```
+
+## Troubleshooting
+
+### Общие проблемы
+
+1. **Docker не найден**
+   ```bash
+   # Установите Docker
+   # Ubuntu/Debian
+   sudo apt-get install docker.io docker-compose
+   
+   # macOS
+   brew install docker docker-compose
+   
+   # Windows
+   # Скачайте Docker Desktop
+   ```
+
+2. **Ошибки подключения к базе данных**
+   - Проверьте URL базы данных
+   - Убедитесь что база данных доступна
+   - Проверьте права доступа
+
+3. **Ошибки миграций**
+   - Проверьте логи контейнера
+   - Убедитесь что база данных не заблокирована
+   - Проверьте существование таблиц
+
+### Логи и отладка
 
 ```bash
-# Через API
-curl "http://localhost:8000/api/v1/admin/schema"
+# Подробный вывод
+./migrate.sh -v
 
-# Прямая проверка
-python -c "from db_migrations import check_database_schema; print(check_database_schema())"
+# Проверка схемы
+./migrate.sh --check
+
+# Логи Docker контейнера
+docker-compose -f docker-compose.migration.yml run --rm migration
 ```
 
-## Логирование
+## CI/CD интеграция
 
-Все миграции логируются. Проверьте логи backend приложения для отслеживания процесса миграции.
-
-## Откат изменений
-
-Текущие миграции не имеют автоматического отката. Для отката нужно:
-
-1. Создать резервную копию базы данных перед миграцией
-2. При необходимости восстановить из резервной копии
-
-## Примеры для production
-
-### Kubernetes
+### GitHub Actions
 
 ```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: migration
-spec:
-  containers:
-  - name: migration
-    image: your-backend-image
-    env:
-    - name: RUN_MIGRATIONS
-      value: "true"
-    - name: DB_PATH
-      value: "/data/triplan.db"
-    volumeMounts:
-    - name: database
-      mountPath: /data
-  restartPolicy: Never
+name: Database Migration
+on:
+  push:
+    branches: [main]
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          chmod +x migrate.sh
+          ./migrate.sh
 ```
 
-### Systemd service
+### GitLab CI
 
-```ini
-[Unit]
-Description=Triplan Migration
-After=network.target
-
-[Service]
-Type=oneshot
-Environment=RUN_MIGRATIONS=true
-WorkingDirectory=/opt/triplan/backend
-ExecStart=/usr/bin/python3 main.py
-User=triplan
-
-[Install]
-WantedBy=multi-user.target
+```yaml
+migrate:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - export DATABASE_URL="$DATABASE_URL"
+    - chmod +x migrate.sh
+    - ./migrate.sh
+  only:
+    - main
 ```
 
-## Мониторинг
+## Мониторинг и уведомления
 
-После миграции проверьте:
+### Slack уведомления
 
-1. Логи приложения на наличие ошибок
-2. Схему базы данных через API endpoint
-3. Функциональность приложения (регистрация, создание планов)
+```bash
+# После успешной миграции
+curl -X POST -H 'Content-type: application/json' \
+  --data '{"text":"✅ Database migration completed successfully"}' \
+  $SLACK_WEBHOOK_URL
+
+# После ошибки
+curl -X POST -H 'Content-type: application/json' \
+  --data '{"text":"❌ Database migration failed"}' \
+  $SLACK_WEBHOOK_URL
+```
+
+## Поддержка
+
+При возникновении проблем:
+
+1. Проверьте логи миграции
+2. Убедитесь в корректности URL базы данных
+3. Проверьте права доступа к базе данных
+4. Создайте issue с подробным описанием проблемы
+
