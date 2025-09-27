@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  migration:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DB_PATH=/app/triplan.db
+      - RUN_MIGRATIONS=true
+      - ADMIN_MIGRATION_TOKEN=${ADMIN_MIGRATION_TOKEN:-your-secret-token}
+    volumes:
+      - ./triplan.db:/app/triplan.db  # Монтируем существующую БД
+      - ./backend:/app  # Монтируем код для миграций
+    command: python -c "from migrations import run_migrations; run_migrations(); print('Migration completed')"
+    restart: "no"  # Запускаем только один раз
+
+  # Альтернативный способ - через существующий контейнер
+  backend-migration:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DB_PATH=/app/triplan.db
+      - ADMIN_MIGRATION_TOKEN=${ADMIN_MIGRATION_TOKEN:-your-secret-token}
+    volumes:
+      - ./triplan.db:/app/triplan.db
+      - ./backend:/app
+    command: >
+      sh -c "
+        python main.py &
+        sleep 10
+        curl -X POST http://localhost:8000/api/v1/admin/migrate \
+             -H 'Content-Type: application/json' \
+             -H 'Authorization: Bearer $${ADMIN_MIGRATION_TOKEN}'
+        echo 'Migration completed via HTTP endpoint'
+      "
+    restart: "no"

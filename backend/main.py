@@ -3,7 +3,7 @@
 Сервис для создания персонализированных планов тренировок
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -12,12 +12,22 @@ from api_routes import router
 from api_completion import completion_router
 from api_workouts import workouts_router
 from api_statistics import statistics_router
+from migrations import run_migrations, check_database_schema
+import os
 
 # Создание таблиц при запуске приложения
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     create_tables()
+    
+    # Запуск миграций если включена переменная окружения
+    if os.getenv("RUN_MIGRATIONS", "false").lower() == "true":
+        try:
+            run_migrations()
+        except Exception as e:
+            print(f"Migration failed: {e}")
+    
     yield
     # Shutdown
     engine.dispose()
@@ -88,6 +98,43 @@ async def root():
         "docs": "/docs",
         "health": "/api/v1/health"
     }
+
+# Эндпоинт для миграций (только для администраторов)
+@app.post("/api/v1/admin/migrate")
+async def run_database_migrations():
+    """
+    Запустить миграции базы данных
+    Требует переменную окружения ADMIN_MIGRATION_TOKEN
+    """
+    token = os.getenv("ADMIN_MIGRATION_TOKEN")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Migration endpoint disabled"
+        )
+    
+    try:
+        run_migrations()
+        return {"message": "Migrations completed successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Migration failed: {str(e)}"
+        )
+
+@app.get("/api/v1/admin/schema")
+async def get_database_schema():
+    """
+    Получить информацию о схеме базы данных
+    """
+    try:
+        schema = check_database_schema()
+        return {"schema": schema}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get schema: {str(e)}"
+        )
 
 # Обработчик ошибок
 @app.exception_handler(Exception)
