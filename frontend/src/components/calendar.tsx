@@ -21,7 +21,6 @@ import {
   useSensor,
   TouchSensor,
   MouseSensor,
-  PointerSensor,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -109,20 +108,17 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
 
   // Настройка сенсоров для поддержки мыши и touch событий
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
+    // Для мобильных устройств используем TouchSensor с правильными настройками
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200,
-        tolerance: 5,
+        delay: 250,
+        tolerance: 8,
       },
     }),
+    // Для десктопа используем MouseSensor
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 10,
       },
     })
   );
@@ -340,19 +336,30 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                 {({ listeners, attributes }) => (
                                   <div
                                     className={`
-                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative
+                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative select-none
                                       ${workout.is_completed 
                                         ? 'bg-green-50 border-green-200' 
                                         : 'bg-white border-gray-200'
                                       }
                                     `}
                                     title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                                    style={{
+                                      userSelect: 'none',
+                                      WebkitUserSelect: 'none',
+                                      WebkitTouchCallout: 'none'
+                                    }}
                                   >
                                     {/* Кнопка drag-and-drop в правом верхнем углу */}
                                     <button
-                                      className="absolute top-1 right-1 w-5 h-5 rounded-sm border-2 bg-blue-500 border-blue-500 text-white hover:bg-blue-600 flex items-center justify-center text-xs transition-all z-50 cursor-grab active:cursor-grabbing"
+                                      className="absolute top-1 right-1 w-6 h-6 rounded-sm border-2 bg-blue-500 border-blue-500 text-white hover:bg-blue-600 flex items-center justify-center text-xs transition-all z-50 cursor-grab active:cursor-grabbing touch-none select-none"
                                       title="Перетащить тренировку"
-                                      style={{ pointerEvents: 'auto' }}
+                                      style={{ 
+                                        pointerEvents: 'auto',
+                                        touchAction: 'none',
+                                        userSelect: 'none',
+                                        WebkitUserSelect: 'none',
+                                        WebkitTouchCallout: 'none'
+                                      }}
                                       {...listeners}
                                       {...attributes}
                                     >
@@ -367,21 +374,24 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                                         handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
                                       }}
                                       className={`
-                                        absolute top-1 right-7 w-5 h-5 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer
+                                        absolute top-1 right-8 w-6 h-6 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer touch-none select-none
                                         ${workout.is_completed 
                                           ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
                                           : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
                                         }
                                       `}
                                       title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
-                                      style={{ pointerEvents: 'auto' }}
+                                      style={{ 
+                                        pointerEvents: 'auto',
+                                        touchAction: 'manipulation'
+                                      }}
                                     >
                                       {workout.is_completed && '✓'}
                                     </button>
 
                                     {/* Основная область карточки - клик для открытия модального окна */}
                                     <div 
-                                      className="cursor-pointer pr-12"
+                                      className="cursor-pointer pr-16"
                                       onClick={() => handleWorkoutClick(workout)}
                                     >
                                       <div className="flex items-center gap-1 mb-1">
