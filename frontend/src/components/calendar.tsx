@@ -19,12 +19,10 @@ import {
   closestCenter,
   useSensors,
   useSensor,
-} from '@dnd-kit/core';
-import {
   TouchSensor,
   MouseSensor,
   PointerSensor,
-} from '@dnd-kit/sensors';
+} from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
 interface CalendarProps {
