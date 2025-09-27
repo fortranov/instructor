@@ -92,12 +92,6 @@ class DatabaseMigrator:
     def create_tables_if_not_exist(self):
         """Создать основные таблицы если они не существуют"""
         try:
-            # Извлекаем путь к базе данных из DATABASE_URL
-            if self.database_url.startswith("sqlite:///"):
-                db_path = self.database_url.replace("sqlite:///", "")
-                # Устанавливаем переменную окружения для модуля database
-                os.environ["DB_PATH"] = db_path
-            
             # Импортируем модуль database из backend
             backend_path = os.path.join(os.path.dirname(__file__), 'backend')
             if os.path.exists(backend_path):
@@ -158,6 +152,12 @@ def main():
     """Основная функция"""
     # Получение URL базы данных из переменной окружения
     database_url = os.getenv("DATABASE_URL", "sqlite:///./triplan.db")
+    
+    # Устанавливаем DB_PATH для модуля database.py ПЕРЕД любыми импортами
+    if database_url.startswith("sqlite:///"):
+        db_path = database_url.replace("sqlite:///", "")
+        os.environ["DB_PATH"] = db_path
+        logger.info(f"Set DB_PATH environment variable to: {db_path}")
     
     # Проверка наличия файла базы данных для SQLite
     if database_url.startswith("sqlite:///"):
