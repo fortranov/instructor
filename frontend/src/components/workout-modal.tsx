@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,14 +21,7 @@ interface WorkoutModalProps {
 export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalProps) {
   const [stages, setStages] = useState<WorkoutStage[]>([]);
 
-  useEffect(() => {
-    if (workout) {
-      const generatedStages = generateWorkoutStages(workout);
-      setStages(generatedStages);
-    }
-  }, [workout, generateWorkoutStages]);
-
-  const getActivityName = (sportType: SportType): string => {
+  const getActivityName = useCallback((sportType: SportType): string => {
     switch (sportType) {
       case SportType.RUNNING:
         return 'бег';
@@ -39,50 +32,9 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
       default:
         return 'активность';
     }
-  };
+  }, []);
 
-  const generateWorkoutStages = (workout: Workout): WorkoutStage[] => {
-    const stages: WorkoutStage[] = [];
-    const totalDuration = workout.duration_minutes;
-    const activityName = getActivityName(workout.sport_type);
-    
-    // Разминка - всегда 5 минут
-    stages.push({
-      duration: 5,
-      description: `Разминка - легкий ${activityName} для подготовки организма к нагрузке`
-    });
-
-    // Основная часть тренировки
-    const mainDuration = totalDuration - 10; // вычитаем разминку и заминку
-    
-    if (workout.workout_type === WorkoutType.ENDURANCE) {
-      // Длительная тренировка - равномерный бег во второй зоне
-      stages.push({
-        duration: mainDuration,
-        description: `Равномерный ${activityName} во второй зоне интенсивности (комфортная скорость, можно поддерживать разговор)`
-      });
-    } else if (workout.workout_type === WorkoutType.RECOVERY) {
-      // Восстановительная тренировка - равномерный бег в первой зоне
-      stages.push({
-        duration: mainDuration,
-        description: `Восстановительный ${activityName} в первой зоне интенсивности (очень легкий темп, полное восстановление)`
-      });
-    } else if (workout.workout_type === WorkoutType.INTERVAL) {
-      // Интервальная тренировка
-      const intervals = generateIntervals(mainDuration, workout.sport_type);
-      stages.push(...intervals);
-    }
-
-    // Заминка - всегда 5 минут
-    stages.push({
-      duration: 5,
-      description: `Заминка - легкий ${activityName} для восстановления и снижения пульса`
-    });
-
-    return stages;
-  };
-
-  const generateIntervals = (totalDuration: number, sportType: SportType): WorkoutStage[] => {
+  const generateIntervals = useCallback((totalDuration: number, sportType: SportType): WorkoutStage[] => {
     const intervals: WorkoutStage[] = [];
     const activityName = getActivityName(sportType);
     
@@ -150,7 +102,55 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
     }
 
     return intervals;
-  };
+  }, [getActivityName]);
+
+  const generateWorkoutStages = useCallback((workout: Workout): WorkoutStage[] => {
+    const stages: WorkoutStage[] = [];
+    const totalDuration = workout.duration_minutes;
+    const activityName = getActivityName(workout.sport_type);
+    
+    // Разминка - всегда 5 минут
+    stages.push({
+      duration: 5,
+      description: `Разминка - легкий ${activityName} для подготовки организма к нагрузке`
+    });
+
+    // Основная часть тренировки
+    const mainDuration = totalDuration - 10; // вычитаем разминку и заминку
+    
+    if (workout.workout_type === WorkoutType.ENDURANCE) {
+      // Длительная тренировка - равномерный бег во второй зоне
+      stages.push({
+        duration: mainDuration,
+        description: `Равномерный ${activityName} во второй зоне интенсивности (комфортная скорость, можно поддерживать разговор)`
+      });
+    } else if (workout.workout_type === WorkoutType.RECOVERY) {
+      // Восстановительная тренировка - равномерный бег в первой зоне
+      stages.push({
+        duration: mainDuration,
+        description: `Восстановительный ${activityName} в первой зоне интенсивности (очень легкий темп, полное восстановление)`
+      });
+    } else if (workout.workout_type === WorkoutType.INTERVAL) {
+      // Интервальная тренировка
+      const intervals = generateIntervals(mainDuration, workout.sport_type);
+      stages.push(...intervals);
+    }
+
+    // Заминка - всегда 5 минут
+    stages.push({
+      duration: 5,
+      description: `Заминка - легкий ${activityName} для восстановления и снижения пульса`
+    });
+
+    return stages;
+  }, [getActivityName, generateIntervals]);
+
+  useEffect(() => {
+    if (workout) {
+      const generatedStages = generateWorkoutStages(workout);
+      setStages(generatedStages);
+    }
+  }, [workout, generateWorkoutStages]);
 
   if (!isOpen || !workout) {
     return null;
