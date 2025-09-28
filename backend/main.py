@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from database import create_tables, engine
+from database import create_tables, ensure_database_compatibility, engine
 from api_routes import router
 from api_completion import completion_router
 from api_workouts import workouts_router
@@ -18,8 +18,8 @@ import os
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    create_tables()
-    
+    ensure_database_compatibility()  # Сначала проверяем и мигрируем существующую БД
+    create_tables()                  # Затем создаем таблицы если их нет
     
     yield
     # Shutdown

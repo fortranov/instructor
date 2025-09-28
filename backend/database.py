@@ -130,15 +130,111 @@ class WorkoutCompletionMark(Base):
     workout = relationship("Workout", back_populates="completion_marks")
     user = relationship("User", back_populates="completion_marks")
 
+# Обеспечение совместимости базы данных
+def ensure_database_compatibility():
+    """
+    Обеспечить совместимость базы данных с текущей схемой
+    Эта функция должна вызываться при каждом запуске приложения
+    """
+    
+    print(f"Ensuring database compatibility for: {DB_PATH}")
+    
+    try:
+        # Проверяем, существует ли база данных
+        if not os.path.exists(DB_PATH):
+            print("Database does not exist, will be created by SQLAlchemy")
+            return
+        
+        # Подключаемся через sqlite3 для проверки схемы
+        import sqlite3
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Проверяем существование таблицы users
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users';")
+        if not cursor.fetchone():
+            print("Users table does not exist, will be created by SQLAlchemy")
+            conn.close()
+            return
+        
+        # Получаем текущую схему таблицы users
+        cursor.execute("PRAGMA table_info(users);")
+        columns = cursor.fetchall()
+        column_names = [col[1] for col in columns]
+        
+        print(f"Current columns in users table: {column_names}")
+        
+        # Определяем необходимые колонки
+        required_columns = {
+            'competition_date': 'DATE',
+            'competition_type': 'VARCHAR'
+        }
+        
+        # Находим отсутствующие колонки
+        missing_columns = []
+        for col_name, col_type in required_columns.items():
+            if col_name not in column_names:
+                missing_columns.append((col_name, col_type))
+        
+        if missing_columns:
+            print(f"Found missing columns: {[col[0] for col in missing_columns]}")
+            
+            # Добавляем отсутствующие колонки
+            for col_name, col_type in missing_columns:
+                try:
+                    alter_sql = f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"
+                    print(f"Executing: {alter_sql}")
+                    cursor.execute(alter_sql)
+                    print(f"✅ Added column: {col_name}")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" in str(e).lower():
+                        print(f"⚠️  Column {col_name} already exists")
+                    else:
+                        print(f"❌ Error adding column {col_name}: {e}")
+                        raise
+            
+            conn.commit()
+            print("✅ Database schema updated successfully")
+        else:
+            print("✅ All required columns are present")
+        
+        # Проверяем финальную схему
+        cursor.execute("PRAGMA table_info(users);")
+        final_columns = cursor.fetchall()
+        final_column_names = [col[1] for col in final_columns]
+        
+        # Убеждаемся, что все необходимые колонки присутствуют
+        for col_name in required_columns.keys():
+            if col_name not in final_column_names:
+                raise Exception(f"Column {col_name} is still missing after migration!")
+        
+        conn.close()
+        
+        # Очищаем метаданные SQLAlchemy для избежания кэширования
+        Base.metadata.clear()
+        
+        print("✅ Database compatibility check completed")
+        
+    except Exception as e:
+        print(f"❌ Error ensuring database compatibility: {e}")
+        import traceback
+        traceback.print_exc()
+        # Не поднимаем исключение, чтобы не прерывать запуск приложения
+
 # Создание таблиц
 def create_tables():
     try:
         print("Creating database tables...")
+        
+        # Создаем все таблицы
         Base.metadata.create_all(bind=engine)
+        
         print("Database tables created successfully!")
+        
     except Exception as e:
         print(f"Error creating database tables: {e}")
         raise
+
 
 # Получение сессии БД
 def get_db():
