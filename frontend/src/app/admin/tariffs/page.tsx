@@ -49,26 +49,23 @@ export default function TariffsPage() {
       const data = await apiClient.getAdminTariffs();
       setTariffs(data);
         
-        // Обновляем настройки на основе полученных данных
-        const newSettings: TariffSettings = {
-          test: { view_full_plan: false, view_two_weeks: true },
-          trial: { view_full_plan: false, view_two_weeks: true },
-          pro: { view_full_plan: true, view_two_weeks: true }
-        };
+      // Обновляем настройки на основе полученных данных
+      const newSettings: TariffSettings = {
+        test: { view_full_plan: false, view_two_weeks: true },
+        trial: { view_full_plan: false, view_two_weeks: true },
+        pro: { view_full_plan: true, view_two_weeks: true }
+      };
 
-        data.forEach((tariff: Tariff) => {
-          if (tariff.type in newSettings) {
-            newSettings[tariff.type as keyof TariffSettings] = {
-              view_full_plan: tariff.view_full_plan,
-              view_two_weeks: tariff.view_two_weeks
-            };
-          }
-        });
+      data.forEach((tariff: Tariff) => {
+        if (tariff.type in newSettings) {
+          newSettings[tariff.type as keyof TariffSettings] = {
+            view_full_plan: tariff.view_full_plan,
+            view_two_weeks: tariff.view_two_weeks
+          };
+        }
+      });
 
-        setSettings(newSettings);
-      } else {
-        console.error('Ошибка загрузки тарифов');
-      }
+      setSettings(newSettings);
     } catch (error) {
       console.error('Ошибка загрузки тарифов:', error);
     } finally {
