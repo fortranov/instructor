@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { MoreVertical, Search, Filter } from 'lucide-react';
+import apiClient from '@/lib/api';
 
 interface User {
   id: number;
@@ -89,19 +90,8 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        console.error('Ошибка загрузки пользователей:', response.status, response.statusText);
-      }
+      const data = await apiClient.getAdminUsers();
+      setUsers(data);
     } catch (error) {
       console.error('Ошибка загрузки пользователей:', error);
     } finally {
@@ -112,28 +102,10 @@ export default function UsersPage() {
   const handleTariffChange = async (userId: number, tariffType: string) => {
     setUpdatingUserId(userId);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/users/tariff', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          tariff_type: tariffType
-        })
-      });
-
-      if (response.ok) {
-        // Обновляем список пользователей в реальном времени
-        await fetchUsers();
-        console.log(`Тариф пользователя ${userId} изменен на ${tariffType}`);
-      } else {
-        console.error('Ошибка обновления тарифа:', response.status, response.statusText);
-        const errorData = await response.text();
-        console.error('Детали ошибки:', errorData);
-      }
+      await apiClient.updateUserTariff({ user_id: userId, tariff_type: tariffType });
+      // Обновляем список пользователей в реальном времени
+      await fetchUsers();
+      console.log(`Тариф пользователя ${userId} изменен на ${tariffType}`);
     } catch (error) {
       console.error('Ошибка обновления тарифа:', error);
     } finally {

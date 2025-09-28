@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Save, Check, X } from 'lucide-react';
+import apiClient from '@/lib/api';
 
 interface Tariff {
   id: number;
@@ -45,16 +46,8 @@ export default function TariffsPage() {
 
   const fetchTariffs = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/tariffs', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTariffs(data);
+      const data = await apiClient.getAdminTariffs();
+      setTariffs(data);
         
         // Обновляем настройки на основе полученных данных
         const newSettings: TariffSettings = {
@@ -98,22 +91,9 @@ export default function TariffsPage() {
     setSaveMessage(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/tariffs', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(settings)
-      });
-
-      if (response.ok) {
-        setSaveMessage('Настройки тарифов успешно сохранены');
-        await fetchTariffs(); // Обновляем данные
-      } else {
-        setSaveMessage('Ошибка сохранения настроек');
-      }
+      await apiClient.updateTariffs(settings);
+      setSaveMessage('Настройки тарифов успешно сохранены');
+      await fetchTariffs(); // Обновляем данные
     } catch (error) {
       console.error('Ошибка сохранения настроек:', error);
       setSaveMessage('Ошибка сохранения настроек');

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Save, Check, X, RotateCcw, Info } from 'lucide-react';
+import apiClient from '@/lib/api';
 
 interface WorkoutCoefficients {
   id: number;
@@ -69,19 +70,8 @@ export default function WorkoutSettingsPage() {
 
   const fetchCoefficients = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/workout-coefficients', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCoefficients(data);
-      } else {
-        console.error('Ошибка загрузки коэффициентов:', response.status, response.statusText);
-      }
+      const data = await apiClient.getWorkoutCoefficients();
+      setCoefficients(data);
     } catch (error) {
       console.error('Ошибка загрузки коэффициентов:', error);
     } finally {
@@ -105,43 +95,31 @@ export default function WorkoutSettingsPage() {
     setSaveMessage(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/workout-coefficients', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          weekly_distance_beginner: coefficients.weekly_distance_beginner,
-          weekly_distance_5_10: coefficients.weekly_distance_5_10,
-          weekly_distance_10_30: coefficients.weekly_distance_10_30,
-          weekly_distance_30_50: coefficients.weekly_distance_30_50,
-          weekly_distance_50_plus: coefficients.weekly_distance_50_plus,
-          
-          pace_8_plus: coefficients.pace_8_plus,
-          pace_7_8: coefficients.pace_7_8,
-          pace_6_7: coefficients.pace_6_7,
-          pace_5_6: coefficients.pace_5_6,
-          pace_4_5: coefficients.pace_4_5,
-          pace_4_minus: coefficients.pace_4_minus,
-          
-          target_distance_5k: coefficients.target_distance_5k,
-          target_distance_10k: coefficients.target_distance_10k,
-          target_distance_21k: coefficients.target_distance_21k,
-          target_distance_42k: coefficients.target_distance_42k,
-          
-          time_preparation_base: coefficients.time_preparation_base,
-          time_preparation_weeks_optimal: coefficients.time_preparation_weeks_optimal
-        })
+      await apiClient.updateWorkoutCoefficients({
+        weekly_distance_beginner: coefficients.weekly_distance_beginner,
+        weekly_distance_5_10: coefficients.weekly_distance_5_10,
+        weekly_distance_10_30: coefficients.weekly_distance_10_30,
+        weekly_distance_30_50: coefficients.weekly_distance_30_50,
+        weekly_distance_50_plus: coefficients.weekly_distance_50_plus,
+        
+        pace_8_plus: coefficients.pace_8_plus,
+        pace_7_8: coefficients.pace_7_8,
+        pace_6_7: coefficients.pace_6_7,
+        pace_5_6: coefficients.pace_5_6,
+        pace_4_5: coefficients.pace_4_5,
+        pace_4_minus: coefficients.pace_4_minus,
+        
+        target_distance_5k: coefficients.target_distance_5k,
+        target_distance_10k: coefficients.target_distance_10k,
+        target_distance_21k: coefficients.target_distance_21k,
+        target_distance_42k: coefficients.target_distance_42k,
+        
+        time_preparation_base: coefficients.time_preparation_base,
+        time_preparation_weeks_optimal: coefficients.time_preparation_weeks_optimal
       });
-
-      if (response.ok) {
-        setSaveMessage('Коэффициенты тренировок успешно сохранены');
-        await fetchCoefficients(); // Обновляем данные
-      } else {
-        setSaveMessage('Ошибка сохранения коэффициентов');
-      }
+      
+      setSaveMessage('Коэффициенты тренировок успешно сохранены');
+      await fetchCoefficients(); // Обновляем данные
     } catch (error) {
       console.error('Ошибка сохранения коэффициентов:', error);
       setSaveMessage('Ошибка сохранения коэффициентов');
