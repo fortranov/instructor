@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 
-from database import get_db, User, Tariff, TariffType, WorkoutCoefficients
-from auth import get_current_admin_user
+from database import get_db, User, Tariff, TariffType, WorkoutCoefficients, Base, engine
+from auth import get_current_admin_user, get_password_hash
 from schemas import (
     AdminUserResponse, UserTariffUpdate, TariffResponse, TariffsUpdateRequest,
     WorkoutCoefficientsResponse, WorkoutCoefficientsUpdate
 )
+import uuid
+from sqlalchemy import text
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -297,3 +299,149 @@ async def check_admin_rights(
         "user_email": admin_user.email,
         "message": "Права администратора подтверждены"
     }
+
+# Исправление проблем админки
+@router.post("/fix-issues")
+async def fix_admin_issues(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Исправить все проблемы админки"""
+    results = []
+    
+    try:
+        # 1. Создаем все таблицы, если их нет
+        results.append("📋 Создание таблиц...")
+        Base.metadata.create_all(bind=engine)
+        results.append("✅ Таблицы проверены/созданы")
+        
+        # 2. Исправляем тарифы
+        results.append("💳 Исправление тарифов...")
+        
+        # Проверяем колонку tariff_id в таблице users
+        try:
+            result = db.execute(text("PRAGMA table_info(users)"))
+            columns = [row[1] for row in result.fetchall()]
+            
+            if 'tariff_id' not in columns:
+                results.append("➕ Добавление колонки tariff_id...")
+                db.execute(text("ALTER TABLE users ADD COLUMN tariff_id INTEGER"))
+                db.commit()
+                results.append("✅ Колонка tariff_id добавлена")
+            else:
+                results.append("✅ Колонка tariff_id уже существует")
+                
+        except Exception as column_error:
+            results.append(f"⚠️ Ошибка проверки колонки: {column_error}")
+        
+        # Создаем тарифы
+        tariffs_count = db.query(Tariff).count()
+        if tariffs_count == 0:
+            results.append("⚙️ Создание тарифов по умолчанию...")
+            
+            tariffs_data = [
+                {"name": "Тестовый", "type": TariffType.TEST, "view_full_plan": 0, "view_two_weeks": 1},
+                {"name": "Пробный", "type": TariffType.TRIAL, "view_full_plan": 0, "view_two_weeks": 1},
+                {"name": "Про", "type": TariffType.PRO, "view_full_plan": 1, "view_two_weeks": 1}
+            ]
+            
+            for tariff_data in tariffs_data:
+                tariff = Tariff(**tariff_data)
+                db.add(tariff)
+            
+            db.commit()
+            results.append("✅ Тарифы созданы")
+        else:
+            results.append("✅ Тарифы уже существуют")
+        
+        # Назначаем тариф пользователям без тарифа
+        users_without_tariff = db.query(User).filter(User.tariff_id.is_(None)).count()
+        if users_without_tariff > 0:
+            test_tariff = db.query(Tariff).filter(Tariff.type == TariffType.TEST).first()
+            if test_tariff:
+                db.execute(
+                    text("UPDATE users SET tariff_id = :tariff_id WHERE tariff_id IS NULL"),
+                    {"tariff_id": test_tariff.id}
+                )
+                db.commit()
+                results.append(f"✅ Назначен тестовый тариф {users_without_tariff} пользователям")
+        
+        # 3. Исправляем коэффициенты
+        results.append("⚙️ Исправление коэффициентов...")
+        
+        coefficients = db.query(WorkoutCoefficients).first()
+        if not coefficients:
+            results.append("⚙️ Создание коэффициентов по умолчанию...")
+            coefficients = WorkoutCoefficients(
+                weekly_distance_beginner=10,
+                weekly_distance_5_10=50,
+                weekly_distance_10_30=100,
+                weekly_distance_30_50=200,
+                weekly_distance_50_plus=300,
+                pace_8_plus=20,
+                pace_7_8=50,
+                pace_6_7=100,
+                pace_5_6=150,
+                pace_4_5=200,
+                pace_4_minus=300,
+                target_distance_5k=50,
+                target_distance_10k=100,
+                target_distance_21k=150,
+                target_distance_42k=250,
+                time_preparation_base=100,
+                time_preparation_weeks_optimal=16
+            )
+            db.add(coefficients)
+            db.commit()
+            results.append("✅ Коэффициенты созданы")
+        else:
+            results.append("✅ Коэффициенты уже существуют")
+        
+        # 4. Создаем администратора
+        results.append("👤 Проверка администратора...")
+        
+        admin_check = db.query(User).filter(User.email == "abramov.yu.v@gmail.com").first()
+        if not admin_check:
+            results.append("⚙️ Создание пользователя-администратора...")
+            admin_uin = str(uuid.uuid4())
+            while db.query(User).filter(User.uin == admin_uin).first():
+                admin_uin = str(uuid.uuid4())
+            
+            new_admin = User(
+                uin=admin_uin,
+                email="abramov.yu.v@gmail.com",
+                hashed_password=get_password_hash("admin123"),
+                first_name="Юрий",
+                last_name="Абрамов",
+                is_active=1
+            )
+            db.add(new_admin)
+            db.commit()
+            results.append("✅ Администратор создан")
+            results.append("   📧 Email: abramov.yu.v@gmail.com")
+            results.append("   🔑 Пароль: admin123")
+        else:
+            results.append("✅ Администратор уже существует")
+        
+        # Статистика
+        results.append("📊 Итоговая статистика:")
+        results.append(f"   • Тарифов: {db.query(Tariff).count()}")
+        results.append(f"   • Пользователей: {db.query(User).count()}")
+        results.append(f"   • Коэффициентов: {db.query(WorkoutCoefficients).count()}")
+        
+        results.append("🎉 Все проблемы админки исправлены успешно!")
+        
+        return {
+            "success": True,
+            "message": "Все проблемы админки исправлены успешно!",
+            "details": results
+        }
+        
+    except Exception as e:
+        db.rollback()
+        results.append(f"❌ Ошибка: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Ошибка при исправлении проблем: {str(e)}",
+            "details": results
+        }
