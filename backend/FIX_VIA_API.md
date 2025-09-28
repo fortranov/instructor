@@ -26,8 +26,8 @@ curl -X POST https://icanrun.ru/api/v1/admin/fix-issues \
 4. Выполните:
 
 ```javascript
-// Исправить все проблемы админки
-fetch('/api/v1/admin/fix-issues', {
+// Сначала попробуйте создать только таблицы
+fetch('/api/v1/admin/create-tables', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -36,9 +36,25 @@ fetch('/api/v1/admin/fix-issues', {
 })
 .then(response => response.json())
 .then(data => {
-  console.log('Результат исправления:', data);
+  console.log('Создание таблиц:', data);
+  data.details.forEach(detail => console.log(detail));
+  
+  // Если таблицы созданы, запускаем полное исправление
   if (data.success) {
-    console.log('✅ Успешно исправлено!');
+    return fetch('/api/v1/admin/fix-issues', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Полное исправление:', data);
+  if (data.success) {
+    console.log('✅ Все исправлено!');
     data.details.forEach(detail => console.log(detail));
   } else {
     console.log('❌ Ошибка:', data.message);
@@ -53,9 +69,16 @@ fetch('/api/v1/admin/fix-issues', {
    - `Content-Type: application/json`
 3. **Body:** пустой
 
-## Что делает endpoint
+## Доступные endpoints
 
-Endpoint `/api/v1/admin/fix-issues` выполняет:
+### `/api/v1/admin/create-tables` (рекомендуется сначала)
+Создает только таблицы:
+1. ✅ Создает таблицу `tariffs`
+2. ✅ Создает таблицу `workout_coefficients`  
+3. ✅ Добавляет колонку `tariff_id` в таблицу `users`
+
+### `/api/v1/admin/fix-issues` (полное исправление)
+Выполняет все исправления:
 
 1. ✅ Создает все таблицы, если их нет
 2. ✅ Добавляет колонку `tariff_id` в таблицу `users`

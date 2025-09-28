@@ -312,8 +312,73 @@ async def fix_admin_issues(
     try:
         # 1. Создаем все таблицы, если их нет
         results.append("📋 Создание таблиц...")
-        Base.metadata.create_all(bind=engine)
-        results.append("✅ Таблицы проверены/созданы")
+        
+        # Сначала пробуем стандартный способ
+        try:
+            Base.metadata.create_all(bind=engine)
+            results.append("✅ Стандартное создание таблиц выполнено")
+        except Exception as create_error:
+            results.append(f"⚠️ Ошибка стандартного создания: {create_error}")
+        
+        # Проверяем и создаем таблицы вручную, если нужно
+        try:
+            # Проверяем существование таблицы tariffs
+            result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tariffs'"))
+            if not result.fetchone():
+                results.append("➕ Создание таблицы tariffs...")
+                db.execute(text("""
+                    CREATE TABLE tariffs (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        name VARCHAR NOT NULL,
+                        type VARCHAR NOT NULL UNIQUE,
+                        view_full_plan INTEGER DEFAULT 0,
+                        view_two_weeks INTEGER DEFAULT 1,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                db.commit()
+                results.append("✅ Таблица tariffs создана")
+            else:
+                results.append("✅ Таблица tariffs уже существует")
+            
+            # Проверяем существование таблицы workout_coefficients
+            result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='workout_coefficients'"))
+            if not result.fetchone():
+                results.append("➕ Создание таблицы workout_coefficients...")
+                db.execute(text("""
+                    CREATE TABLE workout_coefficients (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        weekly_distance_beginner INTEGER DEFAULT 10,
+                        weekly_distance_5_10 INTEGER DEFAULT 50,
+                        weekly_distance_10_30 INTEGER DEFAULT 100,
+                        weekly_distance_30_50 INTEGER DEFAULT 200,
+                        weekly_distance_50_plus INTEGER DEFAULT 300,
+                        pace_8_plus INTEGER DEFAULT 20,
+                        pace_7_8 INTEGER DEFAULT 50,
+                        pace_6_7 INTEGER DEFAULT 100,
+                        pace_5_6 INTEGER DEFAULT 150,
+                        pace_4_5 INTEGER DEFAULT 200,
+                        pace_4_minus INTEGER DEFAULT 300,
+                        target_distance_5k INTEGER DEFAULT 50,
+                        target_distance_10k INTEGER DEFAULT 100,
+                        target_distance_21k INTEGER DEFAULT 150,
+                        target_distance_42k INTEGER DEFAULT 250,
+                        time_preparation_base INTEGER DEFAULT 100,
+                        time_preparation_weeks_optimal INTEGER DEFAULT 16,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                db.commit()
+                results.append("✅ Таблица workout_coefficients создана")
+            else:
+                results.append("✅ Таблица workout_coefficients уже существует")
+                
+        except Exception as manual_create_error:
+            results.append(f"⚠️ Ошибка ручного создания таблиц: {manual_create_error}")
+        
+        results.append("✅ Проверка таблиц завершена")
         
         # 2. Исправляем тарифы
         results.append("💳 Исправление тарифов...")
@@ -335,7 +400,13 @@ async def fix_admin_issues(
             results.append(f"⚠️ Ошибка проверки колонки: {column_error}")
         
         # Создаем тарифы
-        tariffs_count = db.query(Tariff).count()
+        try:
+            tariffs_count = db.query(Tariff).count()
+            results.append(f"📊 Найдено тарифов: {tariffs_count}")
+        except Exception as count_error:
+            results.append(f"⚠️ Ошибка подсчета тарифов: {count_error}")
+            tariffs_count = 0
+            
         if tariffs_count == 0:
             results.append("⚙️ Создание тарифов по умолчанию...")
             
@@ -369,7 +440,13 @@ async def fix_admin_issues(
         # 3. Исправляем коэффициенты
         results.append("⚙️ Исправление коэффициентов...")
         
-        coefficients = db.query(WorkoutCoefficients).first()
+        try:
+            coefficients = db.query(WorkoutCoefficients).first()
+            results.append(f"📊 Коэффициенты найдены: {coefficients is not None}")
+        except Exception as coeff_error:
+            results.append(f"⚠️ Ошибка поиска коэффициентов: {coeff_error}")
+            coefficients = None
+            
         if not coefficients:
             results.append("⚙️ Создание коэффициентов по умолчанию...")
             coefficients = WorkoutCoefficients(
@@ -443,5 +520,108 @@ async def fix_admin_issues(
         return {
             "success": False,
             "message": f"Ошибка при исправлении проблем: {str(e)}",
+            "details": results
+        }
+
+# Создание только таблиц (упрощенная версия)
+@router.post("/create-tables")
+async def create_admin_tables(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Создать только таблицы админки"""
+    results = []
+    
+    try:
+        results.append("📋 Создание таблиц админки...")
+        
+        # Создание таблицы tariffs
+        try:
+            result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tariffs'"))
+            if not result.fetchone():
+                results.append("➕ Создание таблицы tariffs...")
+                db.execute(text("""
+                    CREATE TABLE tariffs (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        name VARCHAR NOT NULL,
+                        type VARCHAR NOT NULL UNIQUE,
+                        view_full_plan INTEGER DEFAULT 0,
+                        view_two_weeks INTEGER DEFAULT 1,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                db.commit()
+                results.append("✅ Таблица tariffs создана")
+            else:
+                results.append("✅ Таблица tariffs уже существует")
+        except Exception as tariff_error:
+            results.append(f"❌ Ошибка создания tariffs: {tariff_error}")
+        
+        # Создание таблицы workout_coefficients
+        try:
+            result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='workout_coefficients'"))
+            if not result.fetchone():
+                results.append("➕ Создание таблицы workout_coefficients...")
+                db.execute(text("""
+                    CREATE TABLE workout_coefficients (
+                        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        weekly_distance_beginner INTEGER DEFAULT 10,
+                        weekly_distance_5_10 INTEGER DEFAULT 50,
+                        weekly_distance_10_30 INTEGER DEFAULT 100,
+                        weekly_distance_30_50 INTEGER DEFAULT 200,
+                        weekly_distance_50_plus INTEGER DEFAULT 300,
+                        pace_8_plus INTEGER DEFAULT 20,
+                        pace_7_8 INTEGER DEFAULT 50,
+                        pace_6_7 INTEGER DEFAULT 100,
+                        pace_5_6 INTEGER DEFAULT 150,
+                        pace_4_5 INTEGER DEFAULT 200,
+                        pace_4_minus INTEGER DEFAULT 300,
+                        target_distance_5k INTEGER DEFAULT 50,
+                        target_distance_10k INTEGER DEFAULT 100,
+                        target_distance_21k INTEGER DEFAULT 150,
+                        target_distance_42k INTEGER DEFAULT 250,
+                        time_preparation_base INTEGER DEFAULT 100,
+                        time_preparation_weeks_optimal INTEGER DEFAULT 16,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                db.commit()
+                results.append("✅ Таблица workout_coefficients создана")
+            else:
+                results.append("✅ Таблица workout_coefficients уже существует")
+        except Exception as coeff_error:
+            results.append(f"❌ Ошибка создания workout_coefficients: {coeff_error}")
+        
+        # Добавление колонки tariff_id в users
+        try:
+            result = db.execute(text("PRAGMA table_info(users)"))
+            columns = [row[1] for row in result.fetchall()]
+            
+            if 'tariff_id' not in columns:
+                results.append("➕ Добавление колонки tariff_id в users...")
+                db.execute(text("ALTER TABLE users ADD COLUMN tariff_id INTEGER"))
+                db.commit()
+                results.append("✅ Колонка tariff_id добавлена")
+            else:
+                results.append("✅ Колонка tariff_id уже существует")
+        except Exception as column_error:
+            results.append(f"❌ Ошибка добавления колонки: {column_error}")
+        
+        results.append("🎉 Создание таблиц завершено!")
+        
+        return {
+            "success": True,
+            "message": "Таблицы админки созданы успешно!",
+            "details": results
+        }
+        
+    except Exception as e:
+        db.rollback()
+        results.append(f"❌ Критическая ошибка: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Ошибка при создании таблиц: {str(e)}",
             "details": results
         }
