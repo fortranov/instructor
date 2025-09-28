@@ -225,7 +225,8 @@ def ensure_database_compatibility():
         # Определяем необходимые колонки
         required_columns = {
             'competition_date': 'DATE',
-            'competition_type': 'VARCHAR'
+            'competition_type': 'VARCHAR',
+            'tariff_id': 'INTEGER'
         }
         
         # Находим отсутствующие колонки
