@@ -32,7 +32,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
 
       // Проверяем, является ли пользователь администратором
-      if (user.email !== 'administrator') {
+      if (user.email !== 'abramov.yu.v@gmail.com') {
         router.push('/dashboard');
         return;
       }

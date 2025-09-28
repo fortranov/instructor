@@ -19,6 +19,9 @@ export default function Navigation() {
   };
 
   const isActive = (path: string) => pathname === path;
+  
+  // Проверяем, является ли пользователь администратором
+  const isAdmin = user?.email === 'abramov.yu.v@gmail.com';
 
   return (
     <nav className="bg-white shadow-sm border-b">
@@ -73,6 +76,20 @@ export default function Navigation() {
                 >
                   Профиль
                 </Link>
+                
+                {/* Пункт администрирования - только для администратора */}
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className={`inline-flex items-center px-1 pt-1 text-sm font-medium border-b-2 ${
+                      isActive('/admin') || pathname.startsWith('/admin')
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Администрирование
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -168,6 +185,21 @@ export default function Navigation() {
             >
               Профиль
             </Link>
+            
+            {/* Пункт администрирования в мобильном меню - только для администратора */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={`block pl-3 pr-4 py-2 text-base font-medium ${
+                  isActive('/admin') || pathname.startsWith('/admin')
+                    ? 'text-primary bg-primary/10 border-r-4 border-primary'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Администрирование
+              </Link>
+            )}
             
             {/* Мобильная информация о пользователе и кнопка выхода */}
             <div className="border-t border-gray-200 pt-4 pb-3">

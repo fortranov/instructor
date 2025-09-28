@@ -91,7 +91,7 @@ def init_production_database():
         
         # 4. Создаем пользователя-администратора
         print("👤 Создание пользователя-администратора...")
-        admin_user = db.query(User).filter(User.email == "administrator").first()
+        admin_user = db.query(User).filter(User.email == "abramov.yu.v@gmail.com").first()
         if not admin_user:
             admin_uin = str(uuid.uuid4())
             while db.query(User).filter(User.uin == admin_uin).first():
@@ -99,17 +99,17 @@ def init_production_database():
             
             admin_user = User(
                 uin=admin_uin,
-                email="administrator",
+                email="abramov.yu.v@gmail.com",
                 hashed_password=get_password_hash("admin123"),  # Пароль по умолчанию
-                first_name="Администратор",
-                last_name="Системы",
+                first_name="Юрий",
+                last_name="Абрамов",
                 is_active=1
             )
             
             db.add(admin_user)
             db.commit()
             print("✅ Пользователь-администратор создан")
-            print("   📧 Email: administrator")
+            print("   📧 Email: abramov.yu.v@gmail.com")
             print("   🔑 Пароль: admin123")
             print("   ⚠️  ВАЖНО: Смените пароль после первого входа!")
         else:

@@ -24,7 +24,7 @@
 3. **Коэффициенты тренировок по умолчанию**
 
 4. **Пользователь-администратор:**
-   - Email: `administrator`
+   - Email: `abramov.yu.v@gmail.com`
    - Пароль: `admin123`
 
 ## Инструкции по развертыванию
@@ -142,7 +142,7 @@ curl http://your-domain/api/v1/health
 ```bash
 curl -X POST http://your-domain/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "administrator", "password": "admin123"}'
+  -d '{"email": "abramov.yu.v@gmail.com", "password": "admin123"}'
 ```
 
 ### 3. Проверка админской панели
@@ -153,7 +153,7 @@ curl -X POST http://your-domain/api/v1/auth/login \
 ### ⚠️ ВАЖНО: После развертывания
 
 1. **Смените пароль администратора:**
-   - Войдите как `administrator` / `admin123`
+   - Войдите как `abramov.yu.v@gmail.com` / `admin123`
    - Перейдите в профиль
    - Смените пароль на безопасный
 
@@ -199,7 +199,7 @@ Current columns in users table: ['id', 'uin', 'email', ..., 'tariff_id']
 - Все таблицы должны быть созданы
 - Колонка `tariff_id` должна присутствовать в таблице `users`
 - Должны существовать 3 тарифа по умолчанию
-- Должен существовать пользователь `administrator`
+- Должен существовать пользователь `abramov.yu.v@gmail.com`
 
 ## Резервное копирование
 

@@ -90,7 +90,7 @@ def init_admin_user(db: Session):
     """Инициализация пользователя-администратора"""
     
     # Проверяем, есть ли уже администратор
-    admin_user = db.query(User).filter(User.email == "administrator").first()
+    admin_user = db.query(User).filter(User.email == "abramov.yu.v@gmail.com").first()
     if admin_user:
         print("Пользователь-администратор уже существует")
         return
@@ -102,16 +102,16 @@ def init_admin_user(db: Session):
     
     admin_user = User(
         uin=admin_uin,
-        email="administrator",
+        email="abramov.yu.v@gmail.com",
         hashed_password=get_password_hash("admin123"),  # Пароль по умолчанию
-        first_name="Администратор",
-        last_name="Системы",
+        first_name="Юрий",
+        last_name="Абрамов",
         is_active=1
     )
     
     db.add(admin_user)
     db.commit()
-    print("Пользователь-администратор создан (email: administrator, пароль: admin123)")
+    print("Пользователь-администратор создан (email: abramov.yu.v@gmail.com, пароль: admin123)")
 
 def main():
     """Основная функция инициализации"""
