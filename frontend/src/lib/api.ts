@@ -24,8 +24,8 @@ import {
   WorkoutCoefficientsUpdate
 } from '@/types/api';
 
-// Всегда используем относительный путь - это работает как в dev, так и в production
-const API_BASE_URL = '/api/v1';
+// Используем полный URL для внешнего API
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 class ApiClient {
   private baseURL: string;
@@ -232,11 +232,27 @@ class ApiClient {
 
   // Управление пользователями
   async getAdminUsers(): Promise<AdminUser[]> {
-    return this.request<AdminUser[]>('GET', '/admin/users');
+    console.log('API: Запрос списка пользователей...');
+    try {
+      const result = await this.request<AdminUser[]>('GET', '/admin/users');
+      console.log('API: Получен список пользователей:', result);
+      return result;
+    } catch (error) {
+      console.error('API: Ошибка получения списка пользователей:', error);
+      throw error;
+    }
   }
 
   async updateUserTariff(userTariffUpdate: UserTariffUpdate): Promise<{ message: string }> {
-    return this.request<{ message: string }>('PUT', '/admin/users/tariff', userTariffUpdate);
+    console.log('API: Обновление тарифа пользователя:', userTariffUpdate);
+    try {
+      const result = await this.request<{ message: string }>('PUT', '/admin/users/tariff', userTariffUpdate);
+      console.log('API: Тариф пользователя обновлен:', result);
+      return result;
+    } catch (error) {
+      console.error('API: Ошибка обновления тарифа пользователя:', error);
+      throw error;
+    }
   }
 
   // Управление тарифами
@@ -250,7 +266,15 @@ class ApiClient {
 
   // Управление коэффициентами тренировок
   async getWorkoutCoefficients(): Promise<WorkoutCoefficients> {
-    return this.request<WorkoutCoefficients>('GET', '/admin/workout-coefficients');
+    console.log('API: Запрос коэффициентов тренировок...');
+    try {
+      const result = await this.request<WorkoutCoefficients>('GET', '/admin/workout-coefficients');
+      console.log('API: Получены коэффициенты тренировок:', result);
+      return result;
+    } catch (error) {
+      console.error('API: Ошибка получения коэффициентов тренировок:', error);
+      throw error;
+    }
   }
 
   async updateWorkoutCoefficients(coefficientsUpdate: WorkoutCoefficientsUpdate): Promise<{ message: string }> {
