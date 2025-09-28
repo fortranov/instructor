@@ -127,7 +127,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
 def is_admin_user(user: User) -> bool:
     """Проверить, является ли пользователь администратором"""
     # Администратор определяется по email "administrator"
-    return user.email == "administrator"
+    return user.email == "abramov.yu.v@gmail.com"
 
 def get_current_admin_user(current_user: User = Depends(get_current_active_user)) -> User:
     """Получить текущего пользователя-администратора"""
