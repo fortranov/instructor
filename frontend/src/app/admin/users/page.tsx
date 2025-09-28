@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { MoreVertical, Search, Filter } from 'lucide-react';
 import apiClient from '@/lib/api';
-import { AdminUser } from '@/types/api';
+import { AdminUser, TariffType } from '@/types/api';
 
 interface TariffMenuProps {
   user: AdminUser;
-  onTariffChange: (userId: number, tariffType: string) => void;
+  onTariffChange: (userId: number, tariffType: TariffType) => void;
   isOpen: boolean;
   onToggle: () => void;
   isUpdating: boolean;
@@ -15,9 +15,9 @@ interface TariffMenuProps {
 
 const TariffMenu = ({ user, onTariffChange, isOpen, onToggle, isUpdating }: TariffMenuProps) => {
   const tariffs = [
-    { type: 'test', name: 'Тестовый' },
-    { type: 'trial', name: 'Пробный' },
-    { type: 'pro', name: 'Про' }
+    { type: TariffType.TEST, name: 'Тестовый' },
+    { type: TariffType.TRIAL, name: 'Пробный' },
+    { type: TariffType.PRO, name: 'Про' }
   ];
 
   return (
@@ -88,7 +88,7 @@ export default function UsersPage() {
     }
   };
 
-  const handleTariffChange = async (userId: number, tariffType: string) => {
+  const handleTariffChange = async (userId: number, tariffType: TariffType) => {
     setUpdatingUserId(userId);
     try {
       await apiClient.updateUserTariff({ user_id: userId, tariff_type: tariffType });
