@@ -3,21 +3,10 @@
 import { useEffect, useState } from 'react';
 import { MoreVertical, Search, Filter } from 'lucide-react';
 import apiClient from '@/lib/api';
-
-interface User {
-  id: number;
-  uin: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  is_active: boolean;
-  tariff_type: string | null;
-  tariff_name: string | null;
-  created_at: string;
-}
+import { AdminUser } from '@/types/api';
 
 interface TariffMenuProps {
-  user: User;
+  user: AdminUser;
   onTariffChange: (userId: number, tariffType: string) => void;
   isOpen: boolean;
   onToggle: () => void;
@@ -77,7 +66,7 @@ const TariffMenu = ({ user, onTariffChange, isOpen, onToggle, isUpdating }: Tari
 };
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTariff, setFilterTariff] = useState('all');
