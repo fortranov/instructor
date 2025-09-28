@@ -46,7 +46,7 @@ export default function TariffsPage() {
   const fetchTariffs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/admin/tariffs', {
+      const response = await fetch('http://localhost:8000/api/v1/admin/tariffs', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -99,7 +99,7 @@ export default function TariffsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/admin/tariffs', {
+      const response = await fetch('http://localhost:8000/api/v1/admin/tariffs', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

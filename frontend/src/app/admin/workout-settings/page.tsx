@@ -70,7 +70,7 @@ export default function WorkoutSettingsPage() {
   const fetchCoefficients = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/admin/workout-coefficients', {
+      const response = await fetch('http://localhost:8000/api/v1/admin/workout-coefficients', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -80,7 +80,7 @@ export default function WorkoutSettingsPage() {
         const data = await response.json();
         setCoefficients(data);
       } else {
-        console.error('Ошибка загрузки коэффициентов');
+        console.error('Ошибка загрузки коэффициентов:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Ошибка загрузки коэффициентов:', error);
@@ -106,7 +106,7 @@ export default function WorkoutSettingsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/admin/workout-coefficients', {
+      const response = await fetch('http://localhost:8000/api/v1/admin/workout-coefficients', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

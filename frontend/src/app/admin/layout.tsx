@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
 
       try {
-        const response = await fetch('/api/v1/admin/check-admin', {
+        const response = await fetch('http://localhost:8000/api/v1/admin/check-admin', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -109,7 +109,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:inset-0
+        lg:translate-x-0 lg:static lg:inset-0 lg:flex lg:flex-col
       `}>
         <div className="flex items-center justify-between h-16 px-6 border-b">
           <h1 className="text-xl font-bold text-gray-800">Администрирование</h1>
@@ -121,8 +121,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </button>
         </div>
 
-        <nav className="mt-6">
-          <div className="px-3">
+        <nav className="flex-1 mt-6 flex flex-col">
+          <div className="px-3 flex-1">
             {menuItems.map((item) => (
               <Link
                 key={item.href}
@@ -136,32 +136,30 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             ))}
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="px-3">
-              <Link
-                href="/dashboard"
-                className="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
-              >
-                <Settings className="h-5 w-5 mr-3" />
-                Вернуться к приложению
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full px-3 py-2 mt-2 text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
-              >
-                <LogOut className="h-5 w-5 mr-3" />
-                Выйти
-              </button>
+          <div className="px-3 py-4 border-t border-gray-200">
+            <Link
+              href="/dashboard"
+              className="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
+            >
+              <Settings className="h-5 w-5 mr-3" />
+              Вернуться к приложению
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center w-full px-3 py-2 mt-2 text-gray-600 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              Выйти
+            </button>
+          </div>
+
+          <div className="px-3 py-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              <div className="font-medium">{user?.first_name} {user?.last_name}</div>
+              <div className="text-xs">{user?.email}</div>
             </div>
           </div>
         </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="text-sm text-gray-500">
-            <div className="font-medium">{user?.first_name} {user?.last_name}</div>
-            <div className="text-xs">{user?.email}</div>
-          </div>
-        </div>
       </div>
 
       {/* Main content */}

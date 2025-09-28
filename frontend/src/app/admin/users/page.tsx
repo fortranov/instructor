@@ -20,9 +20,10 @@ interface TariffMenuProps {
   onTariffChange: (userId: number, tariffType: string) => void;
   isOpen: boolean;
   onToggle: () => void;
+  isUpdating: boolean;
 }
 
-const TariffMenu = ({ user, onTariffChange, isOpen, onToggle }: TariffMenuProps) => {
+const TariffMenu = ({ user, onTariffChange, isOpen, onToggle, isUpdating }: TariffMenuProps) => {
   const tariffs = [
     { type: 'test', name: 'Тестовый' },
     { type: 'trial', name: 'Пробный' },
@@ -34,8 +35,13 @@ const TariffMenu = ({ user, onTariffChange, isOpen, onToggle }: TariffMenuProps)
       <button
         onClick={onToggle}
         className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+        disabled={isUpdating}
       >
-        <MoreVertical className="h-4 w-4" />
+        {isUpdating ? (
+          <div className="h-4 w-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+        ) : (
+          <MoreVertical className="h-4 w-4" />
+        )}
       </button>
       
       {isOpen && (
@@ -75,6 +81,7 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTariff, setFilterTariff] = useState('all');
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -83,7 +90,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/admin/users', {
+      const response = await fetch('http://localhost:8000/api/v1/admin/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -93,7 +100,7 @@ export default function UsersPage() {
         const data = await response.json();
         setUsers(data);
       } else {
-        console.error('Ошибка загрузки пользователей');
+        console.error('Ошибка загрузки пользователей:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Ошибка загрузки пользователей:', error);
@@ -103,9 +110,10 @@ export default function UsersPage() {
   };
 
   const handleTariffChange = async (userId: number, tariffType: string) => {
+    setUpdatingUserId(userId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/admin/users/tariff', {
+      const response = await fetch('http://localhost:8000/api/v1/admin/users/tariff', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -118,13 +126,18 @@ export default function UsersPage() {
       });
 
       if (response.ok) {
-        // Обновляем список пользователей
+        // Обновляем список пользователей в реальном времени
         await fetchUsers();
+        console.log(`Тариф пользователя ${userId} изменен на ${tariffType}`);
       } else {
-        console.error('Ошибка обновления тарифа');
+        console.error('Ошибка обновления тарифа:', response.status, response.statusText);
+        const errorData = await response.text();
+        console.error('Детали ошибки:', errorData);
       }
     } catch (error) {
       console.error('Ошибка обновления тарифа:', error);
+    } finally {
+      setUpdatingUserId(null);
     }
   };
 
@@ -249,12 +262,13 @@ export default function UsersPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <TariffMenu
-                      user={user}
-                      onTariffChange={handleTariffChange}
-                      isOpen={openMenuId === user.id}
-                      onToggle={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
-                    />
+                      <TariffMenu
+                        user={user}
+                        onTariffChange={handleTariffChange}
+                        isOpen={openMenuId === user.id}
+                        onToggle={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
+                        isUpdating={updatingUserId === user.id}
+                      />
                   </td>
                 </tr>
               ))}
