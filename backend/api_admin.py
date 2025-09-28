@@ -54,28 +54,75 @@ async def update_user_tariff(
     admin_user: User = Depends(get_current_admin_user)
 ):
     """Обновить тариф пользователя"""
-    # Найти пользователя
-    user = db.query(User).filter(User.id == request.user_id).first()
-    if not user:
+    print(f"Обновление тарифа пользователя {request.user_id} на {request.tariff_type}")
+    
+    try:
+        # Найти пользователя
+        user = db.query(User).filter(User.id == request.user_id).first()
+        if not user:
+            print(f"Пользователь с ID {request.user_id} не найден")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Пользователь не найден"
+            )
+        
+        print(f"Пользователь найден: {user.email}")
+        
+        # Найти тариф
+        tariff = db.query(Tariff).filter(Tariff.type == request.tariff_type).first()
+        if not tariff:
+            print(f"Тариф {request.tariff_type} не найден")
+            # Попробуем создать тарифы, если их нет
+            try:
+                from database import Base, engine
+                Base.metadata.create_all(bind=engine)
+                
+                # Создаем тарифы по умолчанию
+                tariffs_data = [
+                    {"name": "Тестовый", "type": TariffType.TEST, "view_full_plan": 0, "view_two_weeks": 1},
+                    {"name": "Пробный", "type": TariffType.TRIAL, "view_full_plan": 0, "view_two_weeks": 1},
+                    {"name": "Про", "type": TariffType.PRO, "view_full_plan": 1, "view_two_weeks": 1}
+                ]
+                
+                for tariff_data in tariffs_data:
+                    existing = db.query(Tariff).filter(Tariff.type == tariff_data["type"]).first()
+                    if not existing:
+                        new_tariff = Tariff(**tariff_data)
+                        db.add(new_tariff)
+                
+                db.commit()
+                
+                # Попробуем найти тариф снова
+                tariff = db.query(Tariff).filter(Tariff.type == request.tariff_type).first()
+                
+            except Exception as create_error:
+                print(f"Ошибка создания тарифов: {create_error}")
+                
+            if not tariff:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Тариф {request.tariff_type} не найден и не может быть создан"
+                )
+        
+        print(f"Тариф найден: {tariff.name} (ID: {tariff.id})")
+        
+        # Обновить тариф пользователя
+        user.tariff_id = tariff.id
+        user.updated_at = datetime.utcnow()
+        db.commit()
+        
+        print(f"Тариф пользователя {user.email} обновлен на {tariff.name}")
+        return {"message": "Тариф пользователя успешно обновлен"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Ошибка при обновлении тарифа: {e}")
+        db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пользователь не найден"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при обновлении тарифа: {str(e)}"
         )
-    
-    # Найти тариф
-    tariff = db.query(Tariff).filter(Tariff.type == request.tariff_type).first()
-    if not tariff:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Тариф не найден"
-        )
-    
-    # Обновить тариф пользователя
-    user.tariff_id = tariff.id
-    user.updated_at = datetime.utcnow()
-    db.commit()
-    
-    return {"message": "Тариф пользователя успешно обновлен"}
 
 # Тарифы
 @router.get("/tariffs", response_model=List[TariffResponse])
@@ -140,14 +187,39 @@ async def get_workout_coefficients(
     admin_user: User = Depends(get_current_admin_user)
 ):
     """Получить коэффициенты тренировок"""
-    coefficients = db.query(WorkoutCoefficients).first()
+    print("Запрос коэффициентов тренировок от администратора:", admin_user.email)
     
-    if not coefficients:
-        # Создать коэффициенты по умолчанию, если их нет
-        coefficients = WorkoutCoefficients()
-        db.add(coefficients)
-        db.commit()
-        db.refresh(coefficients)
+    try:
+        coefficients = db.query(WorkoutCoefficients).first()
+        print(f"Найдено коэффициентов в БД: {coefficients is not None}")
+        
+        if not coefficients:
+            print("Создание коэффициентов по умолчанию...")
+            # Создать коэффициенты по умолчанию, если их нет
+            coefficients = WorkoutCoefficients()
+            db.add(coefficients)
+            db.commit()
+            db.refresh(coefficients)
+            print("Коэффициенты созданы с ID:", coefficients.id)
+    except Exception as e:
+        # Если таблица не существует, создаем её и коэффициенты
+        print(f"Ошибка при получении коэффициентов: {e}")
+        try:
+            # Создаем таблицы, если их нет
+            from database import Base, engine
+            Base.metadata.create_all(bind=engine)
+            
+            # Создаем коэффициенты по умолчанию
+            coefficients = WorkoutCoefficients()
+            db.add(coefficients)
+            db.commit()
+            db.refresh(coefficients)
+        except Exception as create_error:
+            print(f"Ошибка при создании коэффициентов: {create_error}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Ошибка при получении коэффициентов тренировок: {str(create_error)}"
+            )
     
     return WorkoutCoefficientsResponse(
         id=coefficients.id,
