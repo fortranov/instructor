@@ -149,3 +149,107 @@ export interface PlanWizardResponse {
   competition_date: string;
   plan_id: number;
 }
+
+// Типы для администрирования
+
+export enum TariffType {
+  TEST = "test",
+  TRIAL = "trial", 
+  PRO = "pro"
+}
+
+export interface AdminUser {
+  id: number;
+  uin: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  is_active: boolean;
+  tariff_type?: TariffType;
+  tariff_name?: string;
+  created_at: string;
+}
+
+export interface UserTariffUpdate {
+  user_id: number;
+  tariff_type: TariffType;
+}
+
+export interface Tariff {
+  id: number;
+  name: string;
+  type: TariffType;
+  view_full_plan: boolean;
+  view_two_weeks: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TariffUpdate {
+  view_full_plan: boolean;
+  view_two_weeks: boolean;
+}
+
+export interface TariffsUpdateRequest {
+  test: TariffUpdate;
+  trial: TariffUpdate;
+  pro: TariffUpdate;
+}
+
+export interface WorkoutCoefficients {
+  id: number;
+  // Коэффициенты для недельного километража
+  weekly_distance_beginner: number;
+  weekly_distance_5_10: number;
+  weekly_distance_10_30: number;
+  weekly_distance_30_50: number;
+  weekly_distance_50_plus: number;
+  
+  // Коэффициенты для комфортного темпа
+  pace_8_plus: number;
+  pace_7_8: number;
+  pace_6_7: number;
+  pace_5_6: number;
+  pace_4_5: number;
+  pace_4_minus: number;
+  
+  // Коэффициенты для целевой дистанции
+  target_distance_5k: number;
+  target_distance_10k: number;
+  target_distance_21k: number;
+  target_distance_42k: number;
+  
+  // Коэффициенты для времени подготовки
+  time_preparation_base: number;
+  time_preparation_weeks_optimal: number;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkoutCoefficientsUpdate {
+  // Коэффициенты для недельного километража
+  weekly_distance_beginner: number;
+  weekly_distance_5_10: number;
+  weekly_distance_10_30: number;
+  weekly_distance_30_50: number;
+  weekly_distance_50_plus: number;
+  
+  // Коэффициенты для комфортного темпа
+  pace_8_plus: number;
+  pace_7_8: number;
+  pace_6_7: number;
+  pace_5_6: number;
+  pace_4_5: number;
+  pace_4_minus: number;
+  
+  // Коэффициенты для целевой дистанции
+  target_distance_5k: number;
+  target_distance_10k: number;
+  target_distance_21k: number;
+  target_distance_42k: number;
+  
+  // Коэффициенты для времени подготовки
+  time_preparation_base: number;
+  time_preparation_weeks_optimal: number;
+}

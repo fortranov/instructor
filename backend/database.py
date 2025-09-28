@@ -74,6 +74,8 @@ class User(Base):
     # Информация о соревновании пользователя
     competition_date = Column(Date, nullable=True)
     competition_type = Column(Enum(CompetitionType), nullable=True)
+    # Тариф пользователя
+    tariff_id = Column(Integer, ForeignKey("tariffs.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -81,6 +83,8 @@ class User(Base):
     plans = relationship("TrainingPlan", back_populates="user")
     # Связь с отметками выполнения тренировок
     completion_marks = relationship("WorkoutCompletionMark", back_populates="user", cascade="all, delete-orphan")
+    # Связь с тарифом
+    tariff = relationship("Tariff", back_populates="users")
 
 # Модель плана тренировок
 class TrainingPlan(Base):
@@ -129,6 +133,60 @@ class WorkoutCompletionMark(Base):
     # Связи
     workout = relationship("Workout", back_populates="completion_marks")
     user = relationship("User", back_populates="completion_marks")
+
+# Enum для тарифных планов
+class TariffType(str, enum.Enum):
+    TEST = "test"  # Тестовый
+    TRIAL = "trial"  # Пробный
+    PRO = "pro"  # Про
+
+# Модель тарифного плана
+class Tariff(Base):
+    __tablename__ = "tariffs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Название тарифа
+    type = Column(Enum(TariffType), nullable=False, unique=True)  # Тип тарифа
+    view_full_plan = Column(Integer, default=0)  # Просмотр всего плана (0/1)
+    view_two_weeks = Column(Integer, default=1)  # Просмотр двух недель (0/1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Связь с пользователями
+    users = relationship("User", back_populates="tariff")
+
+# Модель настроек коэффициентов тренировок
+class WorkoutCoefficients(Base):
+    __tablename__ = "workout_coefficients"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    # Коэффициенты для недельного километража
+    weekly_distance_beginner = Column(Integer, default=10)
+    weekly_distance_5_10 = Column(Integer, default=50)
+    weekly_distance_10_30 = Column(Integer, default=100)
+    weekly_distance_30_50 = Column(Integer, default=200)
+    weekly_distance_50_plus = Column(Integer, default=300)
+    
+    # Коэффициенты для комфортного темпа
+    pace_8_plus = Column(Integer, default=20)
+    pace_7_8 = Column(Integer, default=50)
+    pace_6_7 = Column(Integer, default=100)
+    pace_5_6 = Column(Integer, default=150)
+    pace_4_5 = Column(Integer, default=200)
+    pace_4_minus = Column(Integer, default=300)
+    
+    # Коэффициенты для целевой дистанции
+    target_distance_5k = Column(Integer, default=50)
+    target_distance_10k = Column(Integer, default=100)
+    target_distance_21k = Column(Integer, default=150)
+    target_distance_42k = Column(Integer, default=250)
+    
+    # Коэффициенты для времени подготовки
+    time_preparation_base = Column(Integer, default=100)
+    time_preparation_weeks_optimal = Column(Integer, default=16)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Обеспечение совместимости базы данных
 def ensure_database_compatibility():

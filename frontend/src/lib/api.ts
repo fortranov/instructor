@@ -15,7 +15,13 @@ import {
   WorkoutCompletionMarkCreate,
   WorkoutCompletionMarkResponse,
   PlanWizardRequest,
-  PlanWizardResponse
+  PlanWizardResponse,
+  AdminUser,
+  UserTariffUpdate,
+  Tariff,
+  TariffsUpdateRequest,
+  WorkoutCoefficients,
+  WorkoutCoefficientsUpdate
 } from '@/types/api';
 
 // Всегда используем относительный путь - это работает как в dev, так и в production
@@ -215,6 +221,40 @@ class ApiClient {
   // Проверка здоровья сервиса
   async healthCheck(): Promise<{ status: string; message: string }> {
     return this.request<{ status: string; message: string }>('GET', '/health');
+  }
+
+  // Админские методы
+  
+  // Проверка прав администратора
+  async checkAdminRights(): Promise<{ is_admin: boolean; user_email: string; message: string }> {
+    return this.request<{ is_admin: boolean; user_email: string; message: string }>('GET', '/admin/check-admin');
+  }
+
+  // Управление пользователями
+  async getAdminUsers(): Promise<AdminUser[]> {
+    return this.request<AdminUser[]>('GET', '/admin/users');
+  }
+
+  async updateUserTariff(userTariffUpdate: UserTariffUpdate): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', '/admin/users/tariff', userTariffUpdate);
+  }
+
+  // Управление тарифами
+  async getAdminTariffs(): Promise<Tariff[]> {
+    return this.request<Tariff[]>('GET', '/admin/tariffs');
+  }
+
+  async updateTariffs(tariffsUpdate: TariffsUpdateRequest): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', '/admin/tariffs', tariffsUpdate);
+  }
+
+  // Управление коэффициентами тренировок
+  async getWorkoutCoefficients(): Promise<WorkoutCoefficients> {
+    return this.request<WorkoutCoefficients>('GET', '/admin/workout-coefficients');
+  }
+
+  async updateWorkoutCoefficients(coefficientsUpdate: WorkoutCoefficientsUpdate): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', '/admin/workout-coefficients', coefficientsUpdate);
   }
 }
 

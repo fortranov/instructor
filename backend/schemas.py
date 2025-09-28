@@ -7,7 +7,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, TYPE_CHECKING
 from datetime import date, datetime
-from database import SportType, WorkoutType, CompetitionType
+from database import SportType, WorkoutType, CompetitionType, TariffType
 
 # Схемы для создания плана
 class TrainingPlanCreate(BaseModel):
@@ -145,3 +145,113 @@ class YearlyStatsResponse(BaseModel):
     total_planned_workouts: int  # Общее количество запланированных тренировок
     total_completed_workouts: int  # Общее количество выполненных тренировок
     weekly_stats: List[WeeklyStats]  # Статистика по неделям
+
+# Схемы для администрирования
+
+# Схемы для тарифов
+class TariffResponse(BaseModel):
+    """Ответ с информацией о тарифе"""
+    id: int
+    name: str
+    type: TariffType
+    view_full_plan: bool
+    view_two_weeks: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class TariffUpdate(BaseModel):
+    """Обновление настроек тарифа"""
+    view_full_plan: bool = Field(..., description="Просмотр всего плана")
+    view_two_weeks: bool = Field(..., description="Просмотр двух недель")
+
+class TariffsUpdateRequest(BaseModel):
+    """Запрос на обновление всех тарифов"""
+    test: TariffUpdate
+    trial: TariffUpdate
+    pro: TariffUpdate
+
+# Схемы для пользователей (администрирование)
+class AdminUserResponse(BaseModel):
+    """Ответ с информацией о пользователе для администратора"""
+    id: int
+    uin: str
+    email: str
+    first_name: Optional[str]
+    last_name: Optional[str]
+    is_active: bool
+    tariff_type: Optional[TariffType]
+    tariff_name: Optional[str]
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class UserTariffUpdate(BaseModel):
+    """Обновление тарифа пользователя"""
+    user_id: int = Field(..., description="ID пользователя")
+    tariff_type: TariffType = Field(..., description="Новый тариф")
+
+# Схемы для коэффициентов тренировок
+class WorkoutCoefficientsResponse(BaseModel):
+    """Ответ с коэффициентами тренировок"""
+    id: int
+    # Коэффициенты для недельного километража
+    weekly_distance_beginner: int
+    weekly_distance_5_10: int
+    weekly_distance_10_30: int
+    weekly_distance_30_50: int
+    weekly_distance_50_plus: int
+    
+    # Коэффициенты для комфортного темпа
+    pace_8_plus: int
+    pace_7_8: int
+    pace_6_7: int
+    pace_5_6: int
+    pace_4_5: int
+    pace_4_minus: int
+    
+    # Коэффициенты для целевой дистанции
+    target_distance_5k: int
+    target_distance_10k: int
+    target_distance_21k: int
+    target_distance_42k: int
+    
+    # Коэффициенты для времени подготовки
+    time_preparation_base: int
+    time_preparation_weeks_optimal: int
+    
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class WorkoutCoefficientsUpdate(BaseModel):
+    """Обновление коэффициентов тренировок"""
+    # Коэффициенты для недельного километража
+    weekly_distance_beginner: int = Field(..., ge=0, le=1000)
+    weekly_distance_5_10: int = Field(..., ge=0, le=1000)
+    weekly_distance_10_30: int = Field(..., ge=0, le=1000)
+    weekly_distance_30_50: int = Field(..., ge=0, le=1000)
+    weekly_distance_50_plus: int = Field(..., ge=0, le=1000)
+    
+    # Коэффициенты для комфортного темпа
+    pace_8_plus: int = Field(..., ge=0, le=1000)
+    pace_7_8: int = Field(..., ge=0, le=1000)
+    pace_6_7: int = Field(..., ge=0, le=1000)
+    pace_5_6: int = Field(..., ge=0, le=1000)
+    pace_4_5: int = Field(..., ge=0, le=1000)
+    pace_4_minus: int = Field(..., ge=0, le=1000)
+    
+    # Коэффициенты для целевой дистанции
+    target_distance_5k: int = Field(..., ge=0, le=1000)
+    target_distance_10k: int = Field(..., ge=0, le=1000)
+    target_distance_21k: int = Field(..., ge=0, le=1000)
+    target_distance_42k: int = Field(..., ge=0, le=1000)
+    
+    # Коэффициенты для времени подготовки
+    time_preparation_base: int = Field(..., ge=0, le=1000)
+    time_preparation_weeks_optimal: int = Field(..., ge=1, le=52)

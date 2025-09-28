@@ -3,7 +3,7 @@
 Содержит логику расчета сложности плана на основе ответов пользователя
 """
 
-from database import CompetitionType
+from database import CompetitionType, WorkoutCoefficients, SessionLocal
 from datetime import date
 
 # Коэффициенты для расчета сложности плана
@@ -40,6 +40,49 @@ TARGET_DISTANCE_COEFFICIENTS = {
 TIME_PREPARATION_BASE = 100
 TIME_PREPARATION_WEEKS_OPTIMAL = 16  # Оптимальное количество недель для подготовки
 
+def get_coefficients_from_db():
+    """Получить коэффициенты из базы данных"""
+    db = SessionLocal()
+    try:
+        coefficients = db.query(WorkoutCoefficients).first()
+        if not coefficients:
+            # Если коэффициентов нет в БД, используем значения по умолчанию
+            return {
+                'weekly_distance': WEEKLY_DISTANCE_COEFFICIENTS,
+                'pace': PACE_COEFFICIENTS,
+                'target_distance': TARGET_DISTANCE_COEFFICIENTS,
+                'time_preparation_base': TIME_PREPARATION_BASE,
+                'time_preparation_weeks_optimal': TIME_PREPARATION_WEEKS_OPTIMAL
+            }
+        
+        return {
+            'weekly_distance': {
+                'beginner': coefficients.weekly_distance_beginner,
+                '5-10': coefficients.weekly_distance_5_10,
+                '10-30': coefficients.weekly_distance_10_30,
+                '30-50': coefficients.weekly_distance_30_50,
+                '50+': coefficients.weekly_distance_50_plus,
+            },
+            'pace': {
+                '8+': coefficients.pace_8_plus,
+                '7-8': coefficients.pace_7_8,
+                '6-7': coefficients.pace_6_7,
+                '5-6': coefficients.pace_5_6,
+                '4-5': coefficients.pace_4_5,
+                '4-': coefficients.pace_4_minus,
+            },
+            'target_distance': {
+                '5k': coefficients.target_distance_5k,
+                '10k': coefficients.target_distance_10k,
+                '21k': coefficients.target_distance_21k,
+                '42k': coefficients.target_distance_42k,
+            },
+            'time_preparation_base': coefficients.time_preparation_base,
+            'time_preparation_weeks_optimal': coefficients.time_preparation_weeks_optimal
+        }
+    finally:
+        db.close()
+
 def calculate_plan_complexity(
     weekly_distance: str,
     comfortable_pace: str,
@@ -61,16 +104,19 @@ def calculate_plan_complexity(
         int: Сложность плана от 0 до 1000
     """
     
+    # Получаем коэффициенты из базы данных
+    coeffs = get_coefficients_from_db()
+    
     complexity = 0
     
     # Базовая сложность на основе недельного километража
-    complexity += WEEKLY_DISTANCE_COEFFICIENTS.get(weekly_distance, 200)
+    complexity += coeffs['weekly_distance'].get(weekly_distance, 200)
     
     # Добавляем сложность на основе темпа
-    complexity += PACE_COEFFICIENTS.get(comfortable_pace, 100)
+    complexity += coeffs['pace'].get(comfortable_pace, 100)
     
     # Добавляем сложность на основе целевой дистанции
-    complexity += TARGET_DISTANCE_COEFFICIENTS.get(target_distance, 100)
+    complexity += coeffs['target_distance'].get(target_distance, 100)
     
     # Корректировка на основе времени подготовки
     if has_specific_goal:
@@ -78,9 +124,9 @@ def calculate_plan_complexity(
         today = datetime.now().date()
         weeks_to_competition = (competition_date - today).days // 7
         
-        if weeks_to_competition < TIME_PREPARATION_WEEKS_OPTIMAL:
+        if weeks_to_competition < coeffs['time_preparation_weeks_optimal']:
             # Если времени мало, увеличиваем сложность
-            time_factor = TIME_PREPARATION_BASE * (TIME_PREPARATION_WEEKS_OPTIMAL / max(weeks_to_competition, 1))
+            time_factor = coeffs['time_preparation_base'] * (coeffs['time_preparation_weeks_optimal'] / max(weeks_to_competition, 1))
             complexity += min(time_factor, 200)  # Ограничиваем максимальную добавку
         else:
             # Если времени достаточно, немного снижаем сложность

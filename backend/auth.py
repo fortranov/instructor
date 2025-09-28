@@ -123,3 +123,17 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
             detail="Неактивный пользователь"
         )
     return current_user
+
+def is_admin_user(user: User) -> bool:
+    """Проверить, является ли пользователь администратором"""
+    # Администратор определяется по email "administrator"
+    return user.email == "administrator"
+
+def get_current_admin_user(current_user: User = Depends(get_current_active_user)) -> User:
+    """Получить текущего пользователя-администратора"""
+    if not is_admin_user(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступ запрещен. Требуются права администратора"
+        )
+    return current_user
