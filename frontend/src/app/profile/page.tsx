@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Navigation from '@/components/navigation';
 import PlanWizardModal, { PlanWizardData } from '@/components/plan-wizard-modal';
 import apiClient from '@/lib/api';
-import { CompetitionType, CompetitionTypesResponse, PlanWizardRequest } from '@/types/api';
+import { CompetitionType, CompetitionTypesResponse, PlanWizardRequest, TrainingPlan } from '@/types/api';
 import { getErrorMessage, isValidEmail, isValidPassword } from '@/lib/utils';
 import { ChevronDown, Wand2 } from 'lucide-react';
 
@@ -44,6 +44,10 @@ export default function ProfilePage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isManualSettingsOpen, setIsManualSettingsOpen] = useState(false);
   const [wizardLoading, setWizardLoading] = useState(false);
+  
+  // Состояние существующего плана
+  const [existingPlan, setExistingPlan] = useState<TrainingPlan | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -72,6 +76,37 @@ export default function ProfilePage() {
 
     loadCompetitionTypes();
   }, []);
+
+  // Загрузка существующего плана пользователя
+  useEffect(() => {
+    const loadExistingPlan = async () => {
+      if (!user?.uin) return;
+      
+      setPlanLoading(true);
+      try {
+        const plan = await apiClient.getTrainingPlan(user.uin);
+        setExistingPlan(plan);
+        
+        // Заполняем поля формы данными из существующего плана
+        setComplexity(plan.complexity);
+        setCompetitionDate(plan.competition_date);
+        setCompetitionType(plan.competition_type);
+        if (plan.competition_distance) {
+          setCompetitionDistance(plan.competition_distance.toString());
+        }
+      } catch (err) {
+        // Если план не найден, это нормально - пользователь еще не создал план
+        console.log('План не найден или ошибка загрузки:', getErrorMessage(err));
+        setExistingPlan(null);
+      } finally {
+        setPlanLoading(false);
+      }
+    };
+
+    if (user?.uin) {
+      loadExistingPlan();
+    }
+  }, [user?.uin]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,8 +220,9 @@ export default function ProfilePage() {
         competition_distance: competitionDistance ? parseFloat(competitionDistance) : undefined,
       };
 
-      await apiClient.createTrainingPlan(planData);
-      setSuccess('План тренировок успешно создан! Перейдите в раздел "План" для просмотра.');
+      const createdPlan = await apiClient.createTrainingPlan(planData);
+      setExistingPlan(createdPlan);
+      setSuccess(existingPlan ? 'План тренировок успешно обновлен! Перейдите в раздел "План" для просмотра.' : 'План тренировок успешно создан! Перейдите в раздел "План" для просмотра.');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -238,7 +274,23 @@ export default function ProfilePage() {
 
       const response = await apiClient.createPlanWithWizard(wizardRequest);
       
-      setSuccess(`План тренировок успешно создан! Сложность: ${response.complexity}. Перейдите в раздел "План" для просмотра.`);
+      // Загружаем обновленный план
+      try {
+        const updatedPlan = await apiClient.getTrainingPlan(user.uin);
+        setExistingPlan(updatedPlan);
+        
+        // Обновляем поля формы
+        setComplexity(updatedPlan.complexity);
+        setCompetitionDate(updatedPlan.competition_date);
+        setCompetitionType(updatedPlan.competition_type);
+        if (updatedPlan.competition_distance) {
+          setCompetitionDistance(updatedPlan.competition_distance.toString());
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки обновленного плана:', getErrorMessage(err));
+      }
+      
+      setSuccess(`План тренировок успешно ${existingPlan ? 'обновлен' : 'создан'}! Сложность: ${response.complexity}. Перейдите в раздел "План" для просмотра.`);
       setIsWizardOpen(false);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -385,7 +437,26 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle>План тренировок</CardTitle>
               <CardDescription>
-                Создайте персонализированный план тренировок
+                {existingPlan ? (
+                  <>
+                    Управляйте вашим планом тренировок
+                    <div className="mt-2 text-sm">
+                      <div><strong>Сложность:</strong> {existingPlan.complexity}</div>
+                      <div><strong>Дата соревнования:</strong> {new Date(existingPlan.competition_date).toLocaleDateString('ru-RU')}</div>
+                      <div><strong>Тип соревнования:</strong> {
+                        competitionTypes ? 
+                          [...competitionTypes.running, ...competitionTypes.cycling, ...competitionTypes.swimming, ...competitionTypes.triathlon]
+                            .find(type => type.value === existingPlan.competition_type)?.label || existingPlan.competition_type
+                          : existingPlan.competition_type
+                      }</div>
+                      {existingPlan.competition_distance && (
+                        <div><strong>Дистанция:</strong> {existingPlan.competition_distance} {existingPlan.competition_type === 'cycling' ? 'км' : 'м'}</div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  'Создайте персонализированный план тренировок'
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -397,10 +468,10 @@ export default function ProfilePage() {
                   disabled={loading || wizardLoading}
                 >
                   <Wand2 className="w-5 h-5" />
-                  <span>Мастер создания планов</span>
+                  <span>{existingPlan ? 'Мастер изменения планов' : 'Мастер создания планов'}</span>
                 </Button>
                 <p className="text-sm text-gray-500 mt-2 text-center">
-                  Ответьте на несколько вопросов, и мы создадим идеальный план для вас
+                  {existingPlan ? 'Ответьте на несколько вопросов, и мы обновим ваш план' : 'Ответьте на несколько вопросов, и мы создадим идеальный план для вас'}
                 </p>
               </div>
 
@@ -418,6 +489,11 @@ export default function ProfilePage() {
                 
                 {isManualSettingsOpen && (
                   <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    {planLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-gray-500">Загрузка данных плана...</div>
+                      </div>
+                    ) : (
                     <form onSubmit={handleCreatePlan} className="space-y-4">
                 <div>
                   <label htmlFor="complexity" className="block text-sm font-medium text-gray-700 mb-1">
@@ -536,10 +612,11 @@ export default function ProfilePage() {
                   </p>
                 </div>
 
-                      <Button type="submit" disabled={loading} className="w-full">
-                        {loading ? 'Создание плана...' : 'Создать план тренировок'}
+                      <Button type="submit" disabled={loading || planLoading} className="w-full">
+                        {loading ? (existingPlan ? 'Обновление плана...' : 'Создание плана...') : (existingPlan ? 'Изменить план тренировок' : 'Создать план тренировок')}
                       </Button>
                     </form>
+                    )}
                   </div>
                 )}
               </div>
