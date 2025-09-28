@@ -18,54 +18,49 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const checkAdminRights = async () => {
+    const checkAdminRights = () => {
+      console.log('Проверка прав администратора, authLoading:', authLoading, 'user:', user);
+      
+      // Ждем завершения загрузки аутентификации
+      if (authLoading) {
+        console.log('Ожидание завершения загрузки аутентификации...');
+        return;
+      }
+      
       if (!user) {
+        console.log('Пользователь не найден, перенаправление на логин');
         router.push('/auth/login');
         return;
       }
 
       // Проверяем, является ли пользователь администратором
       if (user.email !== 'abramov.yu.v@gmail.com') {
+        console.log('Пользователь не является администратором:', user.email);
         router.push('/dashboard');
         return;
       }
 
-      try {
-        const response = await fetch('http://localhost:8000/api/v1/admin/check-admin', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-
-        if (response.ok) {
-          setIsAdmin(true);
-        } else {
-          router.push('/dashboard');
-        }
-      } catch (error) {
-        console.error('Ошибка проверки прав администратора:', error);
-        router.push('/dashboard');
-      } finally {
-        setIsLoading(false);
-      }
+      console.log('Пользователь является администратором:', user.email);
+      setIsAdmin(true);
+      setIsLoading(false);
     };
 
     checkAdminRights();
-  }, [user, router]);
+  }, [user, router, authLoading]);
 
   const handleLogout = () => {
     logout();
     router.push('/auth/login');
   };
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
