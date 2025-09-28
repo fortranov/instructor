@@ -12,8 +12,8 @@ import apiClient from '@/lib/api';
 import { Workout, TrainingPlan } from '@/types/api';
 import { getErrorMessage } from '@/lib/utils';
 import { RotateCcw } from 'lucide-react';
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+// import { format } from 'date-fns';
+// import { ru } from 'date-fns/locale';
 
 export default function PlanPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();

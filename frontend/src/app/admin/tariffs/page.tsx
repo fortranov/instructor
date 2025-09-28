@@ -124,7 +124,7 @@ export default function TariffsPage() {
     }
   };
 
-  const tariffNames = {
+  const tariffNames: Record<string, string> = {
     test: 'Тестовый',
     trial: 'Пробный',
     pro: 'Про'
@@ -193,7 +193,7 @@ export default function TariffsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {settingLabel}
                   </td>
-                  {Object.entries(tariffNames).map(([tariffType, tariffName]) => (
+                  {Object.entries(tariffNames).map(([tariffType]) => (
                     <td key={tariffType} className="px-6 py-4 whitespace-nowrap text-center">
                       <label className="inline-flex items-center">
                         <input

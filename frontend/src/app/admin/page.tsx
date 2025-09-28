@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, CreditCard, Settings, Activity } from 'lucide-react';
+import { Users, CreditCard, Settings } from 'lucide-react';
 
 interface AdminStats {
   totalUsers: number;

@@ -26,7 +26,7 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
       const generatedStages = generateWorkoutStages(workout);
       setStages(generatedStages);
     }
-  }, [workout]);
+  }, [workout, generateWorkoutStages]);
 
   const getActivityName = (sportType: SportType): string => {
     switch (sportType) {

@@ -285,7 +285,7 @@ export default function UsersPage() {
           <div className="text-2xl font-bold text-gray-900">
             {users.filter(u => u.tariff_type === 'pro').length}
           </div>
-          <div className="text-sm text-gray-600">Пользователей с тарифом "Про"</div>
+          <div className="text-sm text-gray-600">Пользователей с тарифом &quot;Про&quot;</div>
         </div>
       </div>
     </div>
