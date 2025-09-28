@@ -24,8 +24,8 @@ import {
   WorkoutCoefficientsUpdate
 } from '@/types/api';
 
-// Используем полный URL для внешнего API
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+// Используем относительный путь - Next.js проксирует запросы к бэкенду
+const API_BASE_URL = '/api/v1';
 
 class ApiClient {
   private baseURL: string;
