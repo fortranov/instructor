@@ -141,6 +141,7 @@ export interface PlanWizardRequest {
   target_distance: string;
   competition_date: string;
   has_specific_goal: boolean;
+  preferred_workout_days: number[];
 }
 
 export interface PlanWizardResponse {

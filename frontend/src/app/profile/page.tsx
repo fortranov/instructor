@@ -270,6 +270,7 @@ export default function ProfilePage() {
         target_distance: wizardData.targetDistance,
         competition_date: wizardData.competitionDate,
         has_specific_goal: wizardData.hasSpecificGoal,
+        preferred_workout_days: wizardData.preferredWorkoutDays,
       };
 
       const response = await apiClient.createPlanWithWizard(wizardRequest);
@@ -631,6 +632,7 @@ export default function ProfilePage() {
         onClose={() => setIsWizardOpen(false)}
         onSubmit={handleWizardSubmit}
         loading={wizardLoading}
+        initialPreferredDays={preferredWorkoutDays}
       />
     </div>
   );

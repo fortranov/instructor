@@ -12,6 +12,7 @@ export interface PlanWizardData {
   targetDistance: string;
   competitionDate: string;
   hasSpecificGoal: boolean;
+  preferredWorkoutDays: number[];
 }
 
 interface PlanWizardModalProps {
@@ -19,6 +20,7 @@ interface PlanWizardModalProps {
   onClose: () => void;
   onSubmit: (data: PlanWizardData) => Promise<void>;
   loading?: boolean;
+  initialPreferredDays?: number[];
 }
 
 const WEEKLY_DISTANCE_OPTIONS = [
@@ -45,7 +47,7 @@ const TARGET_DISTANCE_OPTIONS = [
   { value: '42k', label: '42 км (марафон)' },
 ];
 
-export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = false }: PlanWizardModalProps) {
+export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = false, initialPreferredDays = [0, 1, 2, 3, 4, 5, 6] }: PlanWizardModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PlanWizardData>({
     weeklyDistance: '',
@@ -53,9 +55,10 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
     targetDistance: '',
     competitionDate: '',
     hasSpecificGoal: true,
+    preferredWorkoutDays: initialPreferredDays,
   });
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -89,6 +92,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
       targetDistance: '',
       competitionDate: '',
       hasSpecificGoal: true,
+      preferredWorkoutDays: initialPreferredDays,
     });
     onClose();
   };
@@ -103,12 +107,36 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
         return formData.targetDistance !== '';
       case 4:
         return formData.hasSpecificGoal ? formData.competitionDate !== '' : true;
+      case 5:
+        return formData.preferredWorkoutDays.length > 0;
       default:
         return false;
     }
   };
 
   const canProceed = isStepValid();
+
+  // Названия дней недели
+  const weekDays = [
+    { value: 0, label: 'Понедельник' },
+    { value: 1, label: 'Вторник' },
+    { value: 2, label: 'Среда' },
+    { value: 3, label: 'Четверг' },
+    { value: 4, label: 'Пятница' },
+    { value: 5, label: 'Суббота' },
+    { value: 6, label: 'Воскресенье' }
+  ];
+
+  const handleDayToggle = (dayValue: number) => {
+    setFormData(prev => {
+      const currentDays = prev.preferredWorkoutDays;
+      if (currentDays.includes(dayValue)) {
+        return { ...prev, preferredWorkoutDays: currentDays.filter(day => day !== dayValue) };
+      } else {
+        return { ...prev, preferredWorkoutDays: [...currentDays, dayValue].sort() };
+      }
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -321,6 +349,57 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
                       </p>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Шаг 5: Предпочтительные дни для тренировок */}
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-center mb-6">
+                  В какие дни недели Вам удобнее тренироваться?
+                </h3>
+                
+                <div className="space-y-3">
+                  {weekDays.map((day) => (
+                    <label
+                      key={day.value}
+                      className={`
+                        flex items-center p-3 border rounded-lg cursor-pointer transition-all
+                        ${formData.preferredWorkoutDays.includes(day.value)
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }
+                      `}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.preferredWorkoutDays.includes(day.value)}
+                        onChange={() => handleDayToggle(day.value)}
+                        className="sr-only"
+                      />
+                      <div className={`
+                        w-4 h-4 rounded border-2 mr-3 flex items-center justify-center
+                        ${formData.preferredWorkoutDays.includes(day.value)
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-gray-300'
+                        }
+                      `}>
+                        {formData.preferredWorkoutDays.includes(day.value) && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">{day.label}</span>
+                    </label>
+                  ))}
+                </div>
+                
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    Выбрано дней: {formData.preferredWorkoutDays.length} из 7. Тренировки будут распределяться только по выбранным дням.
+                  </p>
                 </div>
               </div>
             )}

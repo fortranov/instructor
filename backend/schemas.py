@@ -97,6 +97,7 @@ class PlanWizardRequest(BaseModel):
     target_distance: str = Field(..., description="Целевая дистанция")
     competition_date: date = Field(..., description="Дата соревнования")
     has_specific_goal: bool = Field(..., description="Есть ли конкретная цель")
+    preferred_workout_days: List[int] = Field(default=[0,1,2,3,4,5,6], description="Предпочтительные дни для тренировок (0=понедельник, 6=воскресенье)")
 
 class PlanWizardResponse(BaseModel):
     complexity: int = Field(..., description="Рассчитанная сложность плана")

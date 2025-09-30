@@ -141,9 +141,10 @@ async def create_plan_with_wizard(
         # Определяем тип соревнования
         competition_type = determine_competition_type(wizard_data.target_distance)
         
-        # Обновляем данные пользователя с информацией о соревновании
+        # Обновляем данные пользователя с информацией о соревновании и предпочтительными днями
         current_user.competition_date = wizard_data.competition_date
         current_user.competition_type = competition_type
+        current_user.preferred_workout_days = json.dumps(wizard_data.preferred_workout_days)
         current_user.updated_at = datetime.utcnow()
         db.commit()
         
