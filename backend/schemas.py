@@ -105,6 +105,18 @@ class PlanWizardResponse(BaseModel):
     competition_date: date = Field(..., description="Дата соревнования")
     plan_id: int = Field(..., description="ID созданного плана")
 
+class WeeklyWorkoutCountRequest(BaseModel):
+    weekly_distance: str = Field(..., description="Недельный километраж")
+    comfortable_pace: str = Field(..., description="Комфортный темп бега")
+    target_distance: str = Field(..., description="Целевая дистанция")
+    competition_date: date = Field(..., description="Дата соревнования")
+    has_specific_goal: bool = Field(..., description="Есть ли конкретная цель")
+
+class WeeklyWorkoutCountResponse(BaseModel):
+    max_weekly_workouts: int = Field(..., description="Максимальное количество тренировок в неделю")
+    complexity: int = Field(..., description="Рассчитанная сложность плана")
+    competition_type: CompetitionType = Field(..., description="Определенный тип соревнования")
+
 # Простые схемы для ответов (без вложенных коллекций)
 class SimpleWorkoutsByDateResponse(BaseModel):
     """Простой ответ с тренировками без вложенных объектов"""

@@ -151,6 +151,20 @@ export interface PlanWizardResponse {
   plan_id: number;
 }
 
+export interface WeeklyWorkoutCountRequest {
+  weekly_distance: string;
+  comfortable_pace: string;
+  target_distance: string;
+  competition_date: string;
+  has_specific_goal: boolean;
+}
+
+export interface WeeklyWorkoutCountResponse {
+  max_weekly_workouts: number;
+  complexity: number;
+  competition_type: CompetitionType;
+}
+
 // Типы для администрирования
 
 export enum TariffType {

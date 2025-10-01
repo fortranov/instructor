@@ -20,11 +20,14 @@ from schemas import (
     UserUpdate,
     WorkoutDateUpdate,
     PlanWizardRequest,
-    PlanWizardResponse
+    PlanWizardResponse,
+    WeeklyWorkoutCountRequest,
+    WeeklyWorkoutCountResponse
 )
 # Удалены импорты simple_schemas - endpoints перенесены в отдельные файлы
 from plan_generator import PlanGenerator
 from plan_wizard import calculate_plan_complexity, determine_competition_type
+from training_tables import TrainingTables
 from auth import (
     authenticate_user,
     create_user,
@@ -171,6 +174,60 @@ async def create_plan_with_wizard(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка создания плана через мастер: {str(e)}"
+        )
+
+@router.post("/plans/wizard/workout-count", response_model=WeeklyWorkoutCountResponse, status_code=status.HTTP_200_OK)
+async def get_weekly_workout_count(
+    workout_count_data: WeeklyWorkoutCountRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Получить максимальное количество тренировок в неделю на основе данных мастера.
+    
+    Этот endpoint используется для расчета количества тренировок перед финальным
+    шагом выбора предпочтительных дней в мастере планов.
+    """
+    try:
+        # Рассчитываем сложность плана на основе ответов
+        complexity = calculate_plan_complexity(
+            weekly_distance=workout_count_data.weekly_distance,
+            comfortable_pace=workout_count_data.comfortable_pace,
+            target_distance=workout_count_data.target_distance,
+            competition_date=workout_count_data.competition_date,
+            has_specific_goal=workout_count_data.has_specific_goal
+        )
+        
+        # Определяем тип соревнования
+        competition_type = determine_competition_type(workout_count_data.target_distance)
+        
+        # Получаем виды спорта для этого типа соревнования
+        from database import CompetitionType, SportType
+        training_tables = TrainingTables()
+        sport_types = training_tables.get_sport_types_for_competition(competition_type)
+        
+        # Рассчитываем максимальное количество тренировок в неделю
+        if len(sport_types) == 1:
+            # Для одного вида спорта
+            max_weekly_workouts = TrainingTables.get_weekly_frequency(sport_types[0], complexity)
+        else:
+            # Для триатлона - суммируем частоту для всех видов спорта
+            # (для триатлона частота делится на 2 для каждого вида)
+            max_weekly_workouts = 0
+            for sport_type in sport_types:
+                frequency = TrainingTables.get_weekly_frequency(sport_type, complexity)
+                frequency = max(2, frequency // 2)  # Меньше тренировок каждого вида для триатлона
+                max_weekly_workouts += frequency
+        
+        return WeeklyWorkoutCountResponse(
+            max_weekly_workouts=max_weekly_workouts,
+            complexity=complexity,
+            competition_type=competition_type
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка расчета количества тренировок: {str(e)}"
         )
 
 @router.put("/plans/{uin}/workouts/update-date", status_code=status.HTTP_200_OK)

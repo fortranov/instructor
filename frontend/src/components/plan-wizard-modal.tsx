@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import apiClient from '@/lib/api';
 
 export interface PlanWizardData {
   weeklyDistance: string;
@@ -55,13 +56,35 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
     targetDistance: '',
     competitionDate: '',
     hasSpecificGoal: true,
-    preferredWorkoutDays: initialPreferredDays,
+    preferredWorkoutDays: [],
   });
+  const [maxWeeklyWorkouts, setMaxWeeklyWorkouts] = useState<number | null>(null);
+  const [loadingWorkoutCount, setLoadingWorkoutCount] = useState(false);
 
   const totalSteps = 5;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < totalSteps) {
+      // Если переходим на шаг 5 (выбор дней), сначала запрашиваем количество тренировок
+      if (currentStep === 4 && !maxWeeklyWorkouts) {
+        setLoadingWorkoutCount(true);
+        try {
+          const response = await apiClient.getWeeklyWorkoutCount({
+            weekly_distance: formData.weeklyDistance,
+            comfortable_pace: formData.comfortablePace,
+            target_distance: formData.targetDistance,
+            competition_date: formData.competitionDate,
+            has_specific_goal: formData.hasSpecificGoal,
+          });
+          setMaxWeeklyWorkouts(response.max_weekly_workouts);
+        } catch (error) {
+          console.error('Ошибка получения количества тренировок:', error);
+          // В случае ошибки используем значение по умолчанию
+          setMaxWeeklyWorkouts(6);
+        } finally {
+          setLoadingWorkoutCount(false);
+        }
+      }
       setCurrentStep(currentStep + 1);
     }
   };
@@ -92,8 +115,9 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
       targetDistance: '',
       competitionDate: '',
       hasSpecificGoal: true,
-      preferredWorkoutDays: initialPreferredDays,
+      preferredWorkoutDays: [],
     });
+    setMaxWeeklyWorkouts(null);
     onClose();
   };
 
@@ -108,7 +132,9 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
       case 4:
         return formData.hasSpecificGoal ? formData.competitionDate !== '' : true;
       case 5:
-        return formData.preferredWorkoutDays.length > 0;
+        const selectedCount = formData.preferredWorkoutDays.length;
+        const maxDays = maxWeeklyWorkouts || 7;
+        return selectedCount >= 2 && selectedCount <= maxDays;
       default:
         return false;
     }
@@ -130,10 +156,17 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
   const handleDayToggle = (dayValue: number) => {
     setFormData(prev => {
       const currentDays = prev.preferredWorkoutDays;
+      const maxDays = maxWeeklyWorkouts || 7;
+      
       if (currentDays.includes(dayValue)) {
+        // Убираем день
         return { ...prev, preferredWorkoutDays: currentDays.filter(day => day !== dayValue) };
       } else {
-        return { ...prev, preferredWorkoutDays: [...currentDays, dayValue].sort() };
+        // Добавляем день, если не превышен лимит
+        if (currentDays.length < maxDays) {
+          return { ...prev, preferredWorkoutDays: [...currentDays, dayValue].sort() };
+        }
+        return prev;
       }
     });
   };
@@ -356,51 +389,102 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
             {/* Шаг 5: Предпочтительные дни для тренировок */}
             {currentStep === 5 && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-center mb-6">
-                  В какие дни недели Вам удобнее тренироваться?
-                </h3>
-                
-                <div className="space-y-3">
-                  {weekDays.map((day) => (
-                    <label
-                      key={day.value}
-                      className={`
-                        flex items-center p-3 border rounded-lg cursor-pointer transition-all
-                        ${formData.preferredWorkoutDays.includes(day.value)
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }
-                      `}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.preferredWorkoutDays.includes(day.value)}
-                        onChange={() => handleDayToggle(day.value)}
-                        className="sr-only"
-                      />
-                      <div className={`
-                        w-4 h-4 rounded border-2 mr-3 flex items-center justify-center
-                        ${formData.preferredWorkoutDays.includes(day.value)
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
-                        }
-                      `}>
-                        {formData.preferredWorkoutDays.includes(day.value) && (
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                {loadingWorkoutCount ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-gray-600">Рассчитываем количество тренировок...</p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-semibold text-center mb-2">
+                      В какие дни недели Вам удобнее тренироваться?
+                    </h3>
+                    
+                    {maxWeeklyWorkouts && (
+                      <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg mb-4">
+                        <p className="text-sm font-semibold text-blue-900 text-center">
+                          В вашем плане будет максимум {maxWeeklyWorkouts} {maxWeeklyWorkouts === 1 ? 'тренировка' : maxWeeklyWorkouts <= 4 ? 'тренировки' : 'тренировок'} в неделю
+                        </p>
+                        <p className="text-xs text-blue-700 text-center mt-1">
+                          {maxWeeklyWorkouts < 7 
+                            ? `Выберите от 2 до ${maxWeeklyWorkouts} дней для тренировок`
+                            : 'Выберите минимум 2 дня для тренировок'
+                          }
+                        </p>
                       </div>
-                      <span className="text-sm font-medium">{day.label}</span>
-                    </label>
-                  ))}
-                </div>
-                
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    Выбрано дней: {formData.preferredWorkoutDays.length} из 7. Тренировки будут распределяться только по выбранным дням.
-                  </p>
-                </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      {weekDays.map((day) => {
+                        const isSelected = formData.preferredWorkoutDays.includes(day.value);
+                        const maxDays = maxWeeklyWorkouts || 7;
+                        const isDisabled = !isSelected && formData.preferredWorkoutDays.length >= maxDays;
+                        
+                        return (
+                          <label
+                            key={day.value}
+                            className={`
+                              flex items-center p-3 border rounded-lg transition-all
+                              ${isSelected
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : isDisabled
+                                ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer'
+                              }
+                            `}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleDayToggle(day.value)}
+                              disabled={isDisabled}
+                              className="sr-only"
+                            />
+                            <div className={`
+                              w-4 h-4 rounded border-2 mr-3 flex items-center justify-center
+                              ${isSelected
+                                ? 'border-blue-500 bg-blue-500'
+                                : isDisabled
+                                ? 'border-gray-300 bg-gray-100'
+                                : 'border-gray-300'
+                              }
+                            `}>
+                              {isSelected && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium">{day.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className={`p-3 border rounded-lg ${
+                      formData.preferredWorkoutDays.length >= 2 && formData.preferredWorkoutDays.length <= (maxWeeklyWorkouts || 7)
+                        ? 'bg-green-50 border-green-200'
+                        : formData.preferredWorkoutDays.length < 2
+                        ? 'bg-orange-50 border-orange-200'
+                        : 'bg-red-50 border-red-200'
+                    }`}>
+                      <p className={`text-sm font-medium ${
+                        formData.preferredWorkoutDays.length >= 2 && formData.preferredWorkoutDays.length <= (maxWeeklyWorkouts || 7)
+                          ? 'text-green-700'
+                          : formData.preferredWorkoutDays.length < 2
+                          ? 'text-orange-700'
+                          : 'text-red-700'
+                      }`}>
+                        {formData.preferredWorkoutDays.length < 2 
+                          ? `Выбрано дней: ${formData.preferredWorkoutDays.length}. Выберите минимум 2 дня.`
+                          : formData.preferredWorkoutDays.length > (maxWeeklyWorkouts || 7)
+                          ? `Выбрано слишком много дней (${formData.preferredWorkoutDays.length}). Максимум: ${maxWeeklyWorkouts || 7}.`
+                          : `✓ Выбрано дней: ${formData.preferredWorkoutDays.length} из ${maxWeeklyWorkouts || 7}`
+                        }
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -419,11 +503,11 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
               {currentStep < totalSteps ? (
                 <Button
                   onClick={handleNext}
-                  disabled={!canProceed || loading}
+                  disabled={!canProceed || loading || loadingWorkoutCount}
                   className="flex items-center"
                 >
-                  Далее
-                  <ChevronRight className="w-4 h-4 ml-1" />
+                  {loadingWorkoutCount && currentStep === 4 ? 'Загрузка...' : 'Далее'}
+                  {!loadingWorkoutCount && <ChevronRight className="w-4 h-4 ml-1" />}
                 </Button>
               ) : (
                 <Button

@@ -16,6 +16,8 @@ import {
   WorkoutCompletionMarkResponse,
   PlanWizardRequest,
   PlanWizardResponse,
+  WeeklyWorkoutCountRequest,
+  WeeklyWorkoutCountResponse,
   AdminUser,
   UserTariffUpdate,
   Tariff,
@@ -171,6 +173,10 @@ class ApiClient {
   // Мастер создания планов
   async createPlanWithWizard(wizardData: PlanWizardRequest): Promise<PlanWizardResponse> {
     return this.request<PlanWizardResponse>('POST', '/plans/wizard', wizardData);
+  }
+
+  async getWeeklyWorkoutCount(countData: WeeklyWorkoutCountRequest): Promise<WeeklyWorkoutCountResponse> {
+    return this.request<WeeklyWorkoutCountResponse>('POST', '/plans/wizard/workout-count', countData);
   }
 
   async unmarkWorkoutCompleted(workoutId: number): Promise<void> {
