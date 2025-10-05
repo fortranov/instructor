@@ -280,9 +280,6 @@ def ensure_database_compatibility():
         
         conn.close()
         
-        # Очищаем метаданные SQLAlchemy для избежания кэширования
-        Base.metadata.clear()
-        
         print("✅ Database compatibility check completed")
         
     except Exception as e:
@@ -295,6 +292,11 @@ def ensure_database_compatibility():
 def create_tables():
     try:
         print("Creating database tables...")
+        
+        # Выводим список таблиц, которые SQLAlchemy собирается создать
+        print("Tables in metadata:")
+        for table_name in Base.metadata.tables.keys():
+            print(f"  - {table_name}")
         
         # Создаем все таблицы
         Base.metadata.create_all(bind=engine)
