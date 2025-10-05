@@ -151,6 +151,41 @@ export interface PlanWizardResponse {
   plan_id: number;
 }
 
+// Схемы для тарифов пользователей
+export interface UserTariffResponse {
+  tariff_type: string | null;
+  tariff_name: string | null;
+}
+
+export interface TariffPurchaseRequest {
+  tariff_type: string;
+  months: number;
+}
+
+export interface TariffPriceResponse {
+  base_price: number;
+  months: number;
+  discount_percent: number;
+  final_price: number;
+  total_savings: number;
+}
+
+// Схемы для настроек приложения
+export interface AppSettingResponse {
+  id: number;
+  key: string;
+  value: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppSettingUpdate {
+  key: string;
+  value: string;
+  description?: string;
+}
+
 export interface WeeklyWorkoutCountRequest {
   weekly_distance: string;
   comfortable_pace: string;

@@ -39,10 +39,32 @@ export default function TariffsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [proTariffPrice, setProTariffPrice] = useState('999.00');
+  const [priceLoading, setPriceLoading] = useState(false);
 
   useEffect(() => {
     fetchTariffs();
+    fetchProTariffPrice();
   }, []);
+
+  const fetchProTariffPrice = async () => {
+    setPriceLoading(true);
+    try {
+      const setting = await apiClient.getAppSetting('pro_tariff_price');
+      setProTariffPrice(setting.value);
+    } catch (error) {
+      console.error('Ошибка загрузки цены тарифа:', error);
+      // Если настройка не найдена, инициализируем значения по умолчанию
+      try {
+        await apiClient.initDefaultSettings();
+        setProTariffPrice('999.00');
+      } catch (initError) {
+        console.error('Ошибка инициализации настроек:', initError);
+      }
+    } finally {
+      setPriceLoading(false);
+    }
+  };
 
   const fetchTariffs = async () => {
     try {
@@ -88,8 +110,17 @@ export default function TariffsPage() {
     setSaveMessage(null);
 
     try {
+      // Сохраняем настройки тарифов
       await apiClient.updateTariffs(settings);
-      setSaveMessage('Настройки тарифов успешно сохранены');
+      
+      // Сохраняем цену тарифа Про
+      await apiClient.updateAppSetting('pro_tariff_price', {
+        key: 'pro_tariff_price',
+        value: proTariffPrice,
+        description: 'Цена тарифа Про за месяц (в рублях)'
+      });
+      
+      setSaveMessage('Настройки тарифов и цена успешно сохранены');
       await fetchTariffs(); // Обновляем данные
     } catch (error) {
       console.error('Ошибка сохранения настроек:', error);
@@ -143,6 +174,37 @@ export default function TariffsPage() {
           {saveMessage}
         </div>
       )}
+
+      {/* Price settings */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Настройка цены</h3>
+        <div className="max-w-md">
+          <label htmlFor="proTariffPrice" className="block text-sm font-medium text-gray-700 mb-2">
+            Цена тарифа Про за месяц (в рублях)
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              id="proTariffPrice"
+              value={proTariffPrice}
+              onChange={(e) => setProTariffPrice(e.target.value)}
+              disabled={priceLoading}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              placeholder="999.00"
+              step="0.01"
+              min="0"
+            />
+            {priceLoading && (
+              <div className="absolute right-3 top-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              </div>
+            )}
+          </div>
+          <p className="mt-2 text-sm text-gray-500">
+            Эта цена будет использоваться для расчета стоимости подписки с учетом скидок за длительность.
+          </p>
+        </div>
+      </div>
 
       {/* Tariffs settings table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">

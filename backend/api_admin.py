@@ -7,11 +7,11 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 
-from database import get_db, User, Tariff, TariffType, WorkoutCoefficients, Base, engine
+from database import get_db, User, Tariff, TariffType, WorkoutCoefficients, AppSettings, Base, engine
 from auth import get_current_admin_user, get_password_hash
 from schemas import (
     AdminUserResponse, UserTariffUpdate, TariffResponse, TariffsUpdateRequest,
-    WorkoutCoefficientsResponse, WorkoutCoefficientsUpdate
+    WorkoutCoefficientsResponse, WorkoutCoefficientsUpdate, AppSettingResponse, AppSettingUpdate
 )
 import uuid
 from sqlalchemy import text
@@ -625,3 +625,81 @@ async def create_admin_tables(
             "message": f"Ошибка при создании таблиц: {str(e)}",
             "details": results
         }
+
+# Настройки приложения
+@router.get("/settings", response_model=List[AppSettingResponse])
+async def get_app_settings(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Получить все настройки приложения"""
+    settings = db.query(AppSettings).all()
+    return settings
+
+@router.get("/settings/{key}", response_model=AppSettingResponse)
+async def get_app_setting(
+    key: str,
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Получить настройку по ключу"""
+    setting = db.query(AppSettings).filter(AppSettings.key == key).first()
+    if not setting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Настройка с ключом '{key}' не найдена"
+        )
+    return setting
+
+@router.put("/settings/{key}")
+async def update_app_setting(
+    key: str,
+    setting_update: AppSettingUpdate,
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Обновить настройку приложения"""
+    setting = db.query(AppSettings).filter(AppSettings.key == key).first()
+    
+    if not setting:
+        # Создать новую настройку
+        setting = AppSettings(
+            key=setting_update.key,
+            value=setting_update.value,
+            description=setting_update.description
+        )
+        db.add(setting)
+    else:
+        # Обновить существующую
+        setting.value = setting_update.value
+        if setting_update.description is not None:
+            setting.description = setting_update.description
+        setting.updated_at = datetime.utcnow()
+    
+    db.commit()
+    return {"message": "Настройка успешно обновлена"}
+
+@router.post("/settings/init")
+async def init_default_settings(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_admin_user)
+):
+    """Инициализировать настройки по умолчанию"""
+    default_settings = [
+        {
+            "key": "pro_tariff_price",
+            "value": "999.00",
+            "description": "Цена тарифа Про за месяц (в рублях)"
+        }
+    ]
+    
+    created_count = 0
+    for setting_data in default_settings:
+        existing = db.query(AppSettings).filter(AppSettings.key == setting_data["key"]).first()
+        if not existing:
+            setting = AppSettings(**setting_data)
+            db.add(setting)
+            created_count += 1
+    
+    db.commit()
+    return {"message": f"Создано {created_count} настроек по умолчанию"}

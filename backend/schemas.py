@@ -159,6 +159,47 @@ class YearlyStatsResponse(BaseModel):
     total_completed_workouts: int  # Общее количество выполненных тренировок
     weekly_stats: List[WeeklyStats]  # Статистика по неделям
 
+# Схемы для настроек приложения
+class AppSettingResponse(BaseModel):
+    """Настройка приложения"""
+    id: int
+    key: str
+    value: str
+    description: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class AppSettingUpdate(BaseModel):
+    """Обновление настройки приложения"""
+    key: str
+    value: str
+    description: Optional[str] = None
+
+# Схемы для тарифного плана пользователя
+class UserTariffResponse(BaseModel):
+    """Информация о тарифе пользователя"""
+    tariff_type: Optional[str] = None
+    tariff_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class TariffPurchaseRequest(BaseModel):
+    """Запрос на покупку/продление тарифа"""
+    tariff_type: str = Field(..., description="Тип тарифа")
+    months: int = Field(..., ge=1, le=12, description="Количество месяцев")
+    
+class TariffPriceResponse(BaseModel):
+    """Информация о цене тарифа"""
+    base_price: float
+    months: int
+    discount_percent: int
+    final_price: float
+    total_savings: float
+
 # Схемы для администрирования
 
 # Схемы для тарифов

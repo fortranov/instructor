@@ -23,7 +23,12 @@ import {
   Tariff,
   TariffsUpdateRequest,
   WorkoutCoefficients,
-  WorkoutCoefficientsUpdate
+  WorkoutCoefficientsUpdate,
+  UserTariffResponse,
+  TariffPurchaseRequest,
+  TariffPriceResponse,
+  AppSettingResponse,
+  AppSettingUpdate
 } from '@/types/api';
 
 // Используем относительный путь - Next.js проксирует запросы к бэкенду
@@ -285,6 +290,36 @@ class ApiClient {
 
   async updateWorkoutCoefficients(coefficientsUpdate: WorkoutCoefficientsUpdate): Promise<{ message: string }> {
     return this.request<{ message: string }>('PUT', '/admin/workout-coefficients', coefficientsUpdate);
+  }
+
+  // Методы для работы с тарифами пользователей
+  async getUserTariff(): Promise<UserTariffResponse> {
+    return this.request<UserTariffResponse>('GET', '/user/tariff');
+  }
+
+  async getTariffPrice(months: number = 1): Promise<TariffPriceResponse> {
+    return this.request<TariffPriceResponse>('GET', `/user/tariff/price?months=${months}`);
+  }
+
+  async purchaseTariff(purchaseRequest: TariffPurchaseRequest): Promise<{ message: string; tariff_type: string; months: number; price: number; savings: number; note: string }> {
+    return this.request<{ message: string; tariff_type: string; months: number; price: number; savings: number; note: string }>('POST', '/user/tariff/purchase', purchaseRequest);
+  }
+
+  // Методы для работы с настройками приложения (админские)
+  async getAppSettings(): Promise<AppSettingResponse[]> {
+    return this.request<AppSettingResponse[]>('GET', '/admin/settings');
+  }
+
+  async getAppSetting(key: string): Promise<AppSettingResponse> {
+    return this.request<AppSettingResponse>('GET', `/admin/settings/${key}`);
+  }
+
+  async updateAppSetting(key: string, settingUpdate: AppSettingUpdate): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', `/admin/settings/${key}`, settingUpdate);
+  }
+
+  async initDefaultSettings(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('POST', '/admin/settings/init');
   }
 }
 

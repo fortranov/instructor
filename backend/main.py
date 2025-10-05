@@ -13,6 +13,7 @@ from api_completion import completion_router
 from api_workouts import workouts_router
 from api_statistics import statistics_router
 from api_admin import router as admin_router
+from api_user_tariffs import router as user_tariffs_router
 import os
 
 # Создание таблиц при запуске приложения
@@ -79,6 +80,7 @@ app.include_router(completion_router, prefix="/api/v1")
 app.include_router(workouts_router, prefix="/api/v1")
 app.include_router(statistics_router, prefix="/api/v1")
 app.include_router(admin_router)
+app.include_router(user_tariffs_router)
 
 # Корневой эндпоинт
 @app.get("/")

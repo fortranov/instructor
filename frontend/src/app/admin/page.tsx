@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, CreditCard, Settings } from 'lucide-react';
+import apiClient from '@/lib/api';
 
 interface AdminStats {
   totalUsers: number;
@@ -21,15 +22,30 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Здесь можно добавить API для получения статистики
-        // Пока используем заглушку
+        // Загружаем данные пользователей для получения статистики
+        const users = await apiClient.getAdminUsers();
+        
+        // Подсчитываем статистику
+        const totalUsers = users.length;
+        const activeUsers = users.filter(user => user.is_active).length;
+        
+        // Для подсчета планов можно использовать другой API endpoint
+        // Пока используем заглушку для планов
+        const totalPlans = 0; // TODO: добавить API для получения количества планов
+        
+        setStats({
+          totalUsers,
+          activeUsers,
+          totalPlans
+        });
+      } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+        // В случае ошибки показываем нули
         setStats({
           totalUsers: 0,
           activeUsers: 0,
           totalPlans: 0
         });
-      } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
       } finally {
         setIsLoading(false);
       }
@@ -45,7 +61,7 @@ export default function AdminDashboard() {
       icon: Users,
       href: '/admin/users',
       color: 'bg-blue-500',
-      stat: `${stats.totalUsers} пользователей`
+      stat: `${stats.totalUsers} пользователей (${stats.activeUsers} активных)`
     },
     {
       title: 'Тарифы',

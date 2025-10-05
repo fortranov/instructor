@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Navigation from '@/components/navigation';
 import PlanWizardModal, { PlanWizardData } from '@/components/plan-wizard-modal';
+import TariffModal from '@/components/tariff-modal';
 import apiClient from '@/lib/api';
-import { CompetitionType, CompetitionTypesResponse, PlanWizardRequest, TrainingPlan } from '@/types/api';
+import { CompetitionType, CompetitionTypesResponse, PlanWizardRequest, TrainingPlan, UserTariffResponse } from '@/types/api';
 import { getErrorMessage, isValidEmail, isValidPassword } from '@/lib/utils';
 import { ChevronDown, Wand2 } from 'lucide-react';
 
@@ -48,6 +49,11 @@ export default function ProfilePage() {
   // Состояние существующего плана
   const [existingPlan, setExistingPlan] = useState<TrainingPlan | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
+  
+  // Состояние тарифа
+  const [userTariff, setUserTariff] = useState<UserTariffResponse | null>(null);
+  const [tariffLoading, setTariffLoading] = useState(false);
+  const [isTariffModalOpen, setIsTariffModalOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -107,6 +113,28 @@ export default function ProfilePage() {
       loadExistingPlan();
     }
   }, [user?.uin]);
+
+  // Загрузка тарифа пользователя
+  useEffect(() => {
+    const loadUserTariff = async () => {
+      if (!user) return;
+      
+      setTariffLoading(true);
+      try {
+        const tariff = await apiClient.getUserTariff();
+        setUserTariff(tariff);
+      } catch (err) {
+        console.log('Ошибка загрузки тарифа:', getErrorMessage(err));
+        setUserTariff(null);
+      } finally {
+        setTariffLoading(false);
+      }
+    };
+
+    if (user) {
+      loadUserTariff();
+    }
+  }, [user]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,6 +328,16 @@ export default function ProfilePage() {
     }
   };
 
+  const handleTariffSuccess = async () => {
+    // Перезагружаем тариф после успешной покупки
+    try {
+      const tariff = await apiClient.getUserTariff();
+      setUserTariff(tariff);
+    } catch (err) {
+      console.log('Ошибка перезагрузки тарифа:', getErrorMessage(err));
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -337,6 +375,39 @@ export default function ProfilePage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Тарифный план */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Тарифный план</CardTitle>
+              <CardDescription>
+                Управление вашим тарифным планом
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {tariffLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-gray-500">Загрузка тарифа...</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Текущий: </span>
+                    <span className="text-sm text-gray-900">
+                      {userTariff?.tariff_name || 'Не назначен'}
+                    </span>
+                  </div>
+                  
+                  <Button
+                    onClick={() => setIsTariffModalOpen(true)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    {userTariff?.tariff_type === 'pro' ? 'Продлить тарифный план' : 'Сменить тарифный план'}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Личные данные */}
           <Card>
             <CardHeader>
@@ -633,6 +704,14 @@ export default function ProfilePage() {
         onSubmit={handleWizardSubmit}
         loading={wizardLoading}
         initialPreferredDays={preferredWorkoutDays}
+      />
+
+      {/* Модальное окно тарифов */}
+      <TariffModal
+        isOpen={isTariffModalOpen}
+        onClose={() => setIsTariffModalOpen(false)}
+        currentTariff={userTariff?.tariff_type || null}
+        onSuccess={handleTariffSuccess}
       />
     </div>
   );

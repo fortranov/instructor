@@ -182,9 +182,6 @@ export default function PlanPage() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">План тренировок</h1>
-          <p className="text-gray-600 mt-2">
-            Ваш персональный календарь тренировок
-          </p>
         </div>
 
         {error && (
@@ -227,10 +224,6 @@ export default function PlanPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <span className="text-sm text-gray-600">Сложность:</span>
-                    <p className="font-medium">{trainingPlan.complexity}/1000</p>
-                  </div>
-                  <div>
                     <span className="text-sm text-gray-600">Дата соревнования:</span>
                     <p className="font-medium">
                       {new Date(trainingPlan.competition_date).toLocaleDateString('ru-RU')}
@@ -239,6 +232,10 @@ export default function PlanPage() {
                   <div>
                     <span className="text-sm text-gray-600">Тип соревнования:</span>
                     <p className="font-medium">{trainingPlan.competition_type}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-600">Сложность:</span>
+                    <p className="font-medium">{trainingPlan.complexity}/1000</p>
                   </div>
                   <div className="flex gap-2">
                     <Link href="/profile">

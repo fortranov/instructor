@@ -188,6 +188,17 @@ class WorkoutCoefficients(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+# Модель общих настроек приложения
+class AppSettings(Base):
+    __tablename__ = "app_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, nullable=False, unique=True)  # Ключ настройки
+    value = Column(String, nullable=False)  # Значение настройки
+    description = Column(String, nullable=True)  # Описание настройки
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Обеспечение совместимости базы данных
 def ensure_database_compatibility():
     """
