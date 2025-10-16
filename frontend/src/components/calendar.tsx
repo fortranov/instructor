@@ -5,10 +5,11 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { ru } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Workout, SportType } from '@/types/api';
+import { Workout, SportType, UserTariffResponse } from '@/types/api';
 import { formatDuration, getSportIcon, getSportColor, getSportLabel, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Move } from 'lucide-react';
 import WorkoutModal from './workout-modal';
+import BlurredWorkoutCard from './blurred-workout-card';
 import {
   DndContext,
   DragEndEvent,
@@ -30,6 +31,7 @@ interface CalendarProps {
   onWorkoutMove?: (workoutId: number, newDate: string) => Promise<void>;
   onWorkoutToggle?: (workoutId: number, date: string, isCompleted: boolean) => Promise<void>;
   loading?: boolean;
+  userTariff?: UserTariffResponse | null;
 }
 
 // Компонент перетаскиваемой тренировки
@@ -99,12 +101,55 @@ function DroppableDay({
   );
 }
 
-export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWorkoutToggle, loading = false }: CalendarProps) {
+export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWorkoutToggle, loading = false, userTariff }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [draggedWorkoutWeek, setDraggedWorkoutWeek] = useState<Date | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Функция для определения доступности тренировки на основе тарифа
+  const isWorkoutAccessible = (workoutDate: string): boolean => {
+    if (!userTariff || !userTariff.tariff_type) {
+      return true; // Если тариф не загружен, показываем все
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const workout = new Date(workoutDate);
+    workout.setHours(0, 0, 0, 0);
+
+    // Pro тариф - доступны все тренировки
+    if (userTariff.tariff_type === 'pro') {
+      return true;
+    }
+
+    // Неактивный тариф - доступны только тренировки до даты истечения тестового периода
+    if (userTariff.tariff_type === 'inactive') {
+      if (userTariff.test_period_end_date) {
+        const testPeriodEnd = new Date(userTariff.test_period_end_date);
+        testPeriodEnd.setHours(0, 0, 0, 0);
+        return workout < testPeriodEnd;
+      }
+      return false; // Если нет даты окончания, ничего не доступно
+    }
+
+    // Test тариф - только 2 недели от сегодня
+    if (userTariff.tariff_type === 'test') {
+      const twoWeeksFromNow = new Date(today);
+      twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+      return workout <= twoWeeksFromNow;
+    }
+
+    // Trial тариф - текущая неделя + 2 недели вперед
+    if (userTariff.tariff_type === 'trial') {
+      const threeWeeksFromNow = new Date(today);
+      threeWeeksFromNow.setDate(threeWeeksFromNow.getDate() + 21);
+      return workout <= threeWeeksFromNow;
+    }
+
+    return true; // По умолчанию показываем все
+  };
 
   // Настройка сенсоров для поддержки мыши и touch событий
   const sensors = useSensors(
@@ -331,92 +376,104 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                           </div>
                           
                           <div className="space-y-1">
-                            {dayWorkouts.map((workout, workoutIndex) => (
-                              <DraggableWorkout key={workoutIndex} workout={workout}>
-                                {({ listeners, attributes }) => (
-                                  <div
-                                    className={`
-                                      text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative select-none
-                                      ${workout.is_completed 
-                                        ? 'bg-green-50 border-green-200' 
-                                        : 'bg-white border-gray-200'
-                                      }
-                                    `}
-                                    title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
-                                    style={{
-                                      userSelect: 'none',
-                                      WebkitUserSelect: 'none',
-                                      WebkitTouchCallout: 'none'
-                                    }}
-                                  >
-                                    {/* Кнопка drag-and-drop в правом верхнем углу */}
-                                    <button
-                                      className="absolute top-1 right-1 w-6 h-6 rounded-sm border-2 bg-blue-500 border-blue-500 text-white hover:bg-blue-600 flex items-center justify-center text-xs transition-all z-50 cursor-grab active:cursor-grabbing touch-none select-none"
-                                      title="Перетащить тренировку"
-                                      style={{ 
-                                        pointerEvents: 'auto',
-                                        touchAction: 'none',
+                            {dayWorkouts.map((workout, workoutIndex) => {
+                              const isAccessible = isWorkoutAccessible(workout.date);
+                              
+                              // Если тренировка недоступна, показываем замыленную карточку
+                              if (!isAccessible) {
+                                return (
+                                  <BlurredWorkoutCard key={workoutIndex} workout={workout} />
+                                );
+                              }
+                              
+                              // Если тренировка доступна, показываем обычную карточку
+                              return (
+                                <DraggableWorkout key={workoutIndex} workout={workout}>
+                                  {({ listeners, attributes }) => (
+                                    <div
+                                      className={`
+                                        text-xs p-1 rounded border shadow-sm hover:shadow-md transition-shadow relative select-none
+                                        ${workout.is_completed 
+                                          ? 'bg-green-50 border-green-200' 
+                                          : 'bg-white border-gray-200'
+                                        }
+                                      `}
+                                      title={`${getSportIcon(workout.sport_type)} ${getWorkoutTypeLabel(workout.workout_type)} - ${formatDuration(workout.duration_minutes)}`}
+                                      style={{
                                         userSelect: 'none',
                                         WebkitUserSelect: 'none',
                                         WebkitTouchCallout: 'none'
                                       }}
-                                      {...listeners}
-                                      {...attributes}
                                     >
-                                      <Move className="w-3 h-3" />
-                                    </button>
+                                      {/* Кнопка drag-and-drop в правом верхнем углу */}
+                                      <button
+                                        className="absolute top-1 right-1 w-6 h-6 rounded-sm border-2 bg-blue-500 border-blue-500 text-white hover:bg-blue-600 flex items-center justify-center text-xs transition-all z-50 cursor-grab active:cursor-grabbing touch-none select-none"
+                                        title="Перетащить тренировку"
+                                        style={{ 
+                                          pointerEvents: 'auto',
+                                          touchAction: 'none',
+                                          userSelect: 'none',
+                                          WebkitUserSelect: 'none',
+                                          WebkitTouchCallout: 'none'
+                                        }}
+                                        {...listeners}
+                                        {...attributes}
+                                      >
+                                        <Move className="w-3 h-3" />
+                                      </button>
 
-                                    {/* Галочка выполнения в правом верхнем углу (смещена влево) */}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
-                                      }}
-                                      className={`
-                                        absolute top-1 right-8 w-6 h-6 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer touch-none select-none
-                                        ${workout.is_completed 
-                                          ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
-                                          : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
-                                        }
-                                      `}
-                                      title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
-                                      style={{ 
-                                        pointerEvents: 'auto',
-                                        touchAction: 'manipulation'
-                                      }}
-                                    >
-                                      {workout.is_completed && '✓'}
-                                    </button>
+                                      {/* Галочка выполнения в правом верхнем углу (смещена влево) */}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          handleWorkoutToggle(workout.id, workout.date, workout.is_completed || false);
+                                        }}
+                                        className={`
+                                          absolute top-1 right-8 w-6 h-6 rounded-sm border-2 flex items-center justify-center text-xs transition-all z-50 cursor-pointer touch-none select-none
+                                          ${workout.is_completed 
+                                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600' 
+                                            : 'bg-gray-300 border-gray-300 text-gray-500 hover:bg-gray-400'
+                                          }
+                                        `}
+                                        title={workout.is_completed ? 'Тренировка выполнена' : 'Отметить как выполненную'}
+                                        style={{ 
+                                          pointerEvents: 'auto',
+                                          touchAction: 'manipulation'
+                                        }}
+                                      >
+                                        {workout.is_completed && '✓'}
+                                      </button>
 
-                                    {/* Основная область карточки - клик для открытия модального окна */}
-                                    <div 
-                                      className="cursor-pointer pr-16"
-                                      onClick={() => handleWorkoutClick(workout)}
-                                    >
-                                      <div className="flex items-center gap-1 mb-1">
-                                        <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
-                                        <span className={`
-                                          inline-block w-2 h-2 rounded-full flex-shrink-0
-                                          ${getSportColor(workout.sport_type)}
-                                        `}></span>
-                                      </div>
-                                      
-                                      <div className="text-xs text-gray-600 truncate">
-                                        {formatDuration(workout.duration_minutes)}
-                                      </div>
-                                      
-                                      <div className={`
-                                        text-xs px-1 py-0.5 rounded text-center truncate
-                                        ${getWorkoutTypeColor(workout.workout_type)}
-                                      `}>
-                                        {getWorkoutTypeLabel(workout.workout_type)}
+                                      {/* Основная область карточки - клик для открытия модального окна */}
+                                      <div 
+                                        className="cursor-pointer pr-16"
+                                        onClick={() => handleWorkoutClick(workout)}
+                                      >
+                                        <div className="flex items-center gap-1 mb-1">
+                                          <span className="text-sm">{getSportIcon(workout.sport_type)}</span>
+                                          <span className={`
+                                            inline-block w-2 h-2 rounded-full flex-shrink-0
+                                            ${getSportColor(workout.sport_type)}
+                                          `}></span>
+                                        </div>
+                                        
+                                        <div className="text-xs text-gray-600 truncate">
+                                          {formatDuration(workout.duration_minutes)}
+                                        </div>
+                                        
+                                        <div className={`
+                                          text-xs px-1 py-0.5 rounded text-center truncate
+                                          ${getWorkoutTypeColor(workout.workout_type)}
+                                        `}>
+                                          {getWorkoutTypeLabel(workout.workout_type)}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                )}
-                              </DraggableWorkout>
-                            ))}
+                                  )}
+                                </DraggableWorkout>
+                              );
+                            })}
                           </div>
                         </div>
                       </DroppableDay>

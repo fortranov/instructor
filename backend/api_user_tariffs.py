@@ -9,6 +9,7 @@ from typing import Optional
 from database import get_db, User, Tariff, TariffType, AppSettings
 from auth import get_current_active_user
 from schemas import UserTariffResponse, TariffPurchaseRequest, TariffPriceResponse
+from tariff_manager import check_and_update_expired_test_tariff, get_test_period_days_remaining
 
 router = APIRouter(prefix="/api/v1/user", tags=["user-tariffs"])
 
@@ -18,15 +19,30 @@ async def get_user_tariff(
     db: Session = Depends(get_db)
 ):
     """Получить информацию о тарифе текущего пользователя"""
+    # Проверяем и обновляем тариф, если тестовый период истек
+    current_user = check_and_update_expired_test_tariff(db, current_user)
+    
     if current_user.tariff:
+        # Получаем количество дней до конца тестового периода
+        days_remaining = get_test_period_days_remaining(current_user)
+        
+        # Форматируем дату окончания тестового периода
+        test_period_end = None
+        if current_user.test_period_end_date:
+            test_period_end = current_user.test_period_end_date.isoformat()
+        
         return UserTariffResponse(
             tariff_type=current_user.tariff.type,
-            tariff_name=current_user.tariff.name
+            tariff_name=current_user.tariff.name,
+            test_period_days_remaining=days_remaining,
+            test_period_end_date=test_period_end
         )
     else:
         return UserTariffResponse(
             tariff_type=None,
-            tariff_name=None
+            tariff_name=None,
+            test_period_days_remaining=None,
+            test_period_end_date=None
         )
 
 @router.get("/tariff/price")

@@ -183,6 +183,8 @@ class UserTariffResponse(BaseModel):
     """Информация о тарифе пользователя"""
     tariff_type: Optional[str] = None
     tariff_name: Optional[str] = None
+    test_period_days_remaining: Optional[int] = None  # Количество дней до конца тестового периода
+    test_period_end_date: Optional[str] = None  # Дата окончания тестового периода
     
     class Config:
         from_attributes = True

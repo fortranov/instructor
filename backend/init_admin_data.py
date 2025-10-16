@@ -36,6 +36,12 @@ def init_tariffs(db: Session):
             type=TariffType.PRO,
             view_full_plan=1,  # Может просматривать весь план
             view_two_weeks=1   # Может просматривать 2 недели
+        ),
+        Tariff(
+            name="Неактивный",
+            type=TariffType.INACTIVE,
+            view_full_plan=0,  # Не может просматривать весь план
+            view_two_weeks=0   # Не может просматривать даже 2 недели
         )
     ]
     

@@ -76,6 +76,8 @@ class User(Base):
     competition_type = Column(Enum(CompetitionType), nullable=True)
     # Тариф пользователя
     tariff_id = Column(Integer, ForeignKey("tariffs.id"), nullable=True)
+    # Дата окончания тестового периода (для автоматического перехода на неактивный тариф)
+    test_period_end_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -139,6 +141,7 @@ class TariffType(str, enum.Enum):
     TEST = "test"  # Тестовый
     TRIAL = "trial"  # Пробный
     PRO = "pro"  # Про
+    INACTIVE = "inactive"  # Неактивный (истекший тестовый период)
 
 # Модель тарифного плана
 class Tariff(Base):
@@ -237,7 +240,8 @@ def ensure_database_compatibility():
         required_columns = {
             'competition_date': 'DATE',
             'competition_type': 'VARCHAR',
-            'tariff_id': 'INTEGER'
+            'tariff_id': 'INTEGER',
+            'test_period_end_date': 'DATETIME'
         }
         
         # Находим отсутствующие колонки

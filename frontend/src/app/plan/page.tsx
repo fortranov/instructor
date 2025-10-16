@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Navigation from '@/components/navigation';
 import Calendar from '@/components/calendar';
 import apiClient from '@/lib/api';
-import { Workout, TrainingPlan } from '@/types/api';
+import { Workout, TrainingPlan, UserTariffResponse } from '@/types/api';
 import { getErrorMessage } from '@/lib/utils';
 import { RotateCcw } from 'lucide-react';
 // import { format } from 'date-fns';
@@ -25,6 +25,7 @@ export default function PlanPage() {
   const [error, setError] = useState('');
   const [hasCheckedPlan, setHasCheckedPlan] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
+  const [userTariff, setUserTariff] = useState<UserTariffResponse | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -75,6 +76,24 @@ export default function PlanPage() {
       checkUserPlan();
     }
   }, [user?.uin, hasCheckedPlan]);
+
+  // Загрузка тарифа пользователя
+  useEffect(() => {
+    const loadUserTariff = async () => {
+      if (!user) return;
+      
+      try {
+        const tariff = await apiClient.getUserTariff();
+        setUserTariff(tariff);
+      } catch (err) {
+        console.log('Ошибка загрузки тарифа:', getErrorMessage(err));
+      }
+    };
+
+    if (user) {
+      loadUserTariff();
+    }
+  }, [user]);
 
   const handleMonthChange = useCallback(async (startDate: string, endDate: string) => {
     if (!user?.uin) return;
@@ -275,6 +294,7 @@ export default function PlanPage() {
                 onWorkoutMove={handleWorkoutMove}
                 onWorkoutToggle={handleWorkoutToggle}
                 loading={loading}
+                userTariff={userTariff}
               />
             )}
           </>

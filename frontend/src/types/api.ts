@@ -155,6 +155,8 @@ export interface PlanWizardResponse {
 export interface UserTariffResponse {
   tariff_type: string | null;
   tariff_name: string | null;
+  test_period_days_remaining: number | null;
+  test_period_end_date: string | null;
 }
 
 export interface TariffPurchaseRequest {

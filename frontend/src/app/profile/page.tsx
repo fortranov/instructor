@@ -374,40 +374,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Тарифный план */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Тарифный план</CardTitle>
-              <CardDescription>
-                Управление вашим тарифным планом
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {tariffLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-sm text-gray-500">Загрузка тарифа...</div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700">Текущий: </span>
-                    <span className="text-sm text-gray-900">
-                      {userTariff?.tariff_name || 'Не назначен'}
-                    </span>
-                  </div>
-                  
-                  <Button
-                    onClick={() => setIsTariffModalOpen(true)}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                  >
-                    {userTariff?.tariff_type === 'pro' ? 'Продлить тарифный план' : 'Сменить тарифный план'}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+        <div className="space-y-8">
           {/* Личные данные */}
           <Card>
             <CardHeader>
@@ -504,36 +471,102 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Настройки плана тренировок */}
+          {/* Объединенный блок: Тарифный план и План тренировок */}
           <Card>
             <CardHeader>
-              <CardTitle>План тренировок</CardTitle>
+              <CardTitle>План тренировок и тарифы</CardTitle>
               <CardDescription>
-                {existingPlan ? (
-                  <>
-                    Управляйте вашим планом тренировок
-                    <div className="mt-2 text-sm">
-                      <div><strong>Сложность:</strong> {existingPlan.complexity}</div>
-                      <div><strong>Дата соревнования:</strong> {new Date(existingPlan.competition_date).toLocaleDateString('ru-RU')}</div>
-                      <div><strong>Тип соревнования:</strong> {
-                        competitionTypes ? 
-                          [...competitionTypes.running, ...competitionTypes.cycling, ...competitionTypes.swimming, ...competitionTypes.triathlon]
-                            .find(type => type.value === existingPlan.competition_type)?.label || existingPlan.competition_type
-                          : existingPlan.competition_type
-                      }</div>
-                      {existingPlan.competition_distance && (
-                        <div><strong>Дистанция:</strong> {existingPlan.competition_distance} {existingPlan.competition_type === 'cycling' ? 'км' : 'м'}</div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  'Создайте персонализированный план тренировок'
-                )}
+                Управление вашим планом тренировок и тарифным планом
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Кнопка мастера планов */}
-              <div className="mb-6">
+              {/* Секция тарифного плана */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Тарифный план</h3>
+              {tariffLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="text-sm text-gray-500">Загрузка тарифа...</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {existingPlan && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <div className="text-sm space-y-1">
+                        <div><strong>Сложность:</strong> {existingPlan.complexity}</div>
+                        <div><strong>Дата соревнования:</strong> {new Date(existingPlan.competition_date).toLocaleDateString('ru-RU')}</div>
+                        <div><strong>Тип соревнования:</strong> {
+                          competitionTypes ? 
+                            [...competitionTypes.running, ...competitionTypes.cycling, ...competitionTypes.swimming, ...competitionTypes.triathlon]
+                              .find(type => type.value === existingPlan.competition_type)?.label || existingPlan.competition_type
+                            : existingPlan.competition_type
+                        }</div>
+                        {existingPlan.competition_distance && (
+                          <div><strong>Дистанция:</strong> {existingPlan.competition_distance} {existingPlan.competition_type === 'cycling' ? 'км' : 'м'}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Текущий тариф: </span>
+                    <span className="text-sm text-gray-900 font-semibold">
+                      {userTariff?.tariff_name || 'Не назначен'}
+                    </span>
+                  </div>
+
+                  {/* Отображение дней до конца тестового периода */}
+                  {userTariff?.tariff_type === 'test' && userTariff?.test_period_days_remaining !== null && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-600">⏰</span>
+                        <div className="text-sm">
+                          <span className="font-semibold text-yellow-900">
+                            {userTariff.test_period_days_remaining === 0 
+                              ? 'Тестовый период истек'
+                              : `До конца тестового периода: ${userTariff.test_period_days_remaining} ${
+                                  userTariff.test_period_days_remaining === 1 ? 'день' :
+                                  userTariff.test_period_days_remaining < 5 ? 'дня' : 'дней'
+                                }`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Уведомление о неактивном тарифе */}
+                  {userTariff?.tariff_type === 'inactive' && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600">⚠️</span>
+                        <div className="text-sm text-red-900">
+                          <div className="font-semibold">Тестовый период истек</div>
+                          <div className="text-xs mt-1">
+                            Обновите тариф для полного доступа к тренировкам
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Button
+                    onClick={() => setIsTariffModalOpen(true)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    {userTariff?.tariff_type === 'pro' ? 'Продлить тарифный план' : 'Сменить тарифный план'}
+                  </Button>
+                </div>
+              )}
+              </div>
+
+              {/* Секция плана тренировок */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  {existingPlan ? 'Управление планом тренировок' : 'Создание плана тренировок'}
+                </h3>
+                
+                {/* Кнопка мастера планов */}
+                <div className="mb-6">
                 <Button
                   onClick={() => setIsWizardOpen(true)}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
@@ -566,131 +599,132 @@ export default function ProfilePage() {
                         <div className="text-sm text-gray-500">Загрузка данных плана...</div>
                       </div>
                     ) : (
-                    <form onSubmit={handleCreatePlan} className="space-y-4">
-                <div>
-                  <label htmlFor="complexity" className="block text-sm font-medium text-gray-700 mb-1">
-                    Уровень сложности: {complexity}
-                  </label>
-                  <input
-                    id="complexity"
-                    type="range"
-                    min="0"
-                    max="1000"
-                    step="50"
-                    value={complexity}
-                    onChange={(e) => setComplexity(parseInt(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Начинающий (0)</span>
-                    <span>Профессионал (1000)</span>
-                  </div>
-                </div>
+                      <form onSubmit={handleCreatePlan} className="space-y-4">
+                        <div>
+                          <label htmlFor="complexity" className="block text-sm font-medium text-gray-700 mb-1">
+                            Уровень сложности: {complexity}
+                          </label>
+                          <input
+                            id="complexity"
+                            type="range"
+                            min="0"
+                            max="1000"
+                            step="50"
+                            value={complexity}
+                            onChange={(e) => setComplexity(parseInt(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Начинающий (0)</span>
+                            <span>Профессионал (1000)</span>
+                          </div>
+                        </div>
 
-                <div>
-                  <label htmlFor="competitionDate" className="block text-sm font-medium text-gray-700 mb-1">
-                    Дата соревнования
-                  </label>
-                  <Input
-                    id="competitionDate"
-                    type="date"
-                    value={competitionDate}
-                    onChange={(e) => setCompetitionDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
+                        <div>
+                          <label htmlFor="competitionDate" className="block text-sm font-medium text-gray-700 mb-1">
+                            Дата соревнования
+                          </label>
+                          <Input
+                            id="competitionDate"
+                            type="date"
+                            value={competitionDate}
+                            onChange={(e) => setCompetitionDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                          />
+                        </div>
 
-                <div>
-                  <label htmlFor="competitionType" className="block text-sm font-medium text-gray-700 mb-1">
-                    Тип соревнования
-                  </label>
-                  <select
-                    id="competitionType"
-                    value={competitionType}
-                    onChange={(e) => setCompetitionType(e.target.value as CompetitionType)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {competitionTypes && (
-                      <>
-                        <optgroup label="Бег">
-                          {competitionTypes.running.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Велосипед">
-                          {competitionTypes.cycling.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Плавание">
-                          {competitionTypes.swimming.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Триатлон">
-                          {competitionTypes.triathlon.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      </>
+                        <div>
+                          <label htmlFor="competitionType" className="block text-sm font-medium text-gray-700 mb-1">
+                            Тип соревнования
+                          </label>
+                          <select
+                            id="competitionType"
+                            value={competitionType}
+                            onChange={(e) => setCompetitionType(e.target.value as CompetitionType)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            {competitionTypes && (
+                              <>
+                                <optgroup label="Бег">
+                                  {competitionTypes.running.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Велосипед">
+                                  {competitionTypes.cycling.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Плавание">
+                                  {competitionTypes.swimming.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Триатлон">
+                                  {competitionTypes.triathlon.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              </>
+                            )}
+                          </select>
+                        </div>
+
+                        {needsDistance && (
+                          <div>
+                            <label htmlFor="competitionDistance" className="block text-sm font-medium text-gray-700 mb-1">
+                              Дистанция {competitionType === CompetitionType.CYCLING ? '(км)' : '(метры)'}
+                            </label>
+                            <Input
+                              id="competitionDistance"
+                              type="number"
+                              step="0.1"
+                              min="0.1"
+                              value={competitionDistance}
+                              onChange={(e) => setCompetitionDistance(e.target.value)}
+                              placeholder={competitionType === CompetitionType.CYCLING ? 'Например: 40' : 'Например: 1500'}
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Предпочтительные дни для тренировок
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {weekDays.map((day) => (
+                              <label key={day.value} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={preferredWorkoutDays.includes(day.value)}
+                                  onChange={() => handleDayToggle(day.value)}
+                                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                />
+                                <span className="text-sm text-gray-700">{day.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Выберите дни, в которые вы предпочитаете тренироваться
+                          </p>
+                        </div>
+
+                        <Button type="submit" disabled={loading || planLoading} className="w-full">
+                          {loading ? (existingPlan ? 'Обновление плана...' : 'Создание плана...') : (existingPlan ? 'Изменить план тренировок' : 'Создать план тренировок')}
+                        </Button>
+                      </form>
                     )}
-                  </select>
-                </div>
-
-                {needsDistance && (
-                  <div>
-                    <label htmlFor="competitionDistance" className="block text-sm font-medium text-gray-700 mb-1">
-                      Дистанция {competitionType === CompetitionType.CYCLING ? '(км)' : '(метры)'}
-                    </label>
-                    <Input
-                      id="competitionDistance"
-                      type="number"
-                      step="0.1"
-                      min="0.1"
-                      value={competitionDistance}
-                      onChange={(e) => setCompetitionDistance(e.target.value)}
-                      placeholder={competitionType === CompetitionType.CYCLING ? 'Например: 40' : 'Например: 1500'}
-                    />
                   </div>
                 )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Предпочтительные дни для тренировок
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {weekDays.map((day) => (
-                      <label key={day.value} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={preferredWorkoutDays.includes(day.value)}
-                          onChange={() => handleDayToggle(day.value)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <span className="text-sm text-gray-700">{day.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Выберите дни, в которые вы предпочитаете тренироваться
-                  </p>
-                </div>
-
-                      <Button type="submit" disabled={loading || planLoading} className="w-full">
-                        {loading ? (existingPlan ? 'Обновление плана...' : 'Создание плана...') : (existingPlan ? 'Изменить план тренировок' : 'Создать план тренировок')}
-                      </Button>
-                    </form>
-                    )}
-                  </div>
-                )}
+              </div>
               </div>
             </CardContent>
           </Card>

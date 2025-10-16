@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 import uuid
 import os
 
-from database import get_db, User
+from database import get_db, User, Tariff, TariffType
 
 # Настройки JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
@@ -78,6 +78,12 @@ def create_user(db: Session, email: str, password: str, first_name: str = None, 
     while db.query(User).filter(User.uin == uin).first():
         uin = str(uuid.uuid4())
     
+    # Найти тестовый тариф
+    test_tariff = db.query(Tariff).filter(Tariff.type == TariffType.TEST).first()
+    
+    # Установить дату окончания тестового периода (14 дней)
+    test_period_end = datetime.utcnow() + timedelta(days=14)
+    
     # Создать пользователя
     hashed_password = get_password_hash(password)
     user = User(
@@ -86,7 +92,9 @@ def create_user(db: Session, email: str, password: str, first_name: str = None, 
         hashed_password=hashed_password,
         first_name=first_name,
         last_name=last_name,
-        is_active=1
+        is_active=1,
+        tariff_id=test_tariff.id if test_tariff else None,
+        test_period_end_date=test_period_end if test_tariff else None
     )
     db.add(user)
     db.commit()
