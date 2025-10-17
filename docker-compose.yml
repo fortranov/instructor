@@ -43,7 +43,7 @@ services:
       - backend
     networks:
       - reverse_proxy:
-        ipv4_address: http://172.19.0.20
+        ipv4_address: 172.19.0.20
           
 
   # Nginx reverse proxy для продакшена
