@@ -42,8 +42,7 @@ services:
     depends_on:
       - backend
     networks:
-      - reverse_proxy:
-        ipv4_address: 172.19.0.20
+      - reverse_proxy
           
 
   # Nginx reverse proxy для продакшена
