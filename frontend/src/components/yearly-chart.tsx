@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 
 interface WeeklyStats {
   week_start: string;
@@ -22,17 +22,6 @@ const MONTH_NAMES = [
 ];
 
 export default function YearlyChart({ data, year }: YearlyChartProps) {
-  // Refs для синхронизации скролла
-  const chartRef = useRef<HTMLDivElement>(null);
-  const monthsRef = useRef<HTMLDivElement>(null);
-
-  // Синхронизация скролла между графиком и месяцами
-  const handleChartScroll = () => {
-    if (chartRef.current && monthsRef.current) {
-      monthsRef.current.scrollLeft = chartRef.current.scrollLeft;
-    }
-  };
-
   // Обрабатываем недельные данные
   const weeklyData = useMemo(() => {
     const currentYear = year || new Date().getFullYear();
@@ -125,11 +114,7 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
 
         {/* Основной график */}
         <div className="ml-12">
-          <div 
-            ref={chartRef}
-            onScroll={handleChartScroll}
-            className="flex gap-1 h-64 items-end overflow-x-auto"
-          >
+          <div className="flex gap-0.5 h-64 items-end">
             {displayData.map((week, index) => {
               const plannedHeight = maxValue > 0 ? (formatHours(week.planned_duration) / maxValue) * 100 : 0;
               const completedHeight = maxValue > 0 ? (formatHours(week.completed_duration) / maxValue) * 100 : 0;
@@ -145,7 +130,7 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
               const actualCompletedHeight = Math.max(completedHeight, completedHeight > 0 ? minHeightPercent : 0);
               
               return (
-                <div key={week.week_start} className="flex flex-col items-center flex-shrink-0 relative" style={{ width: '20px' }}>
+                <div key={week.week_start} className="flex flex-col items-center flex-1 relative min-w-0">
                   {/* Вертикальный разделитель месяца */}
                   {showMonthDivider && (
                     <div className="absolute left-0 top-0 bottom-0 w-px bg-red-400 z-10"></div>
@@ -193,19 +178,18 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
         </div>
         
         {/* Разделение по месяцам */}
-        <div 
-          ref={monthsRef}
-          className="ml-12 flex gap-1 mt-2 overflow-x-auto hide-scrollbar"
-        >
+        <div className="ml-12 flex gap-0.5 mt-2">
           {Object.entries(monthlyGroups).map(([monthKey, weeks]) => {
             const monthDate = new Date(parseInt(monthKey.split('-')[0]), parseInt(monthKey.split('-')[1]));
             const monthName = MONTH_NAMES[monthDate.getMonth()];
+            const totalWeeks = displayData.length;
+            const monthWidthPercent = (weeks.length / totalWeeks) * 100;
             
             return (
               <div 
                 key={monthKey} 
-                className="flex-shrink-0 text-center"
-                style={{ width: `${weeks.length * 21}px` }} // 20px на столбец + 1px gap
+                className="text-center"
+                style={{ width: `${monthWidthPercent}%` }}
               >
                 <div className="text-xs text-gray-600 font-medium">
                   {monthName}
