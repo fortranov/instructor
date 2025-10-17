@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 
 interface WeeklyStats {
   week_start: string;
@@ -22,6 +22,16 @@ const MONTH_NAMES = [
 ];
 
 export default function YearlyChart({ data, year }: YearlyChartProps) {
+  // Refs для синхронизации скролла
+  const chartRef = useRef<HTMLDivElement>(null);
+  const monthsRef = useRef<HTMLDivElement>(null);
+
+  // Синхронизация скролла между графиком и месяцами
+  const handleChartScroll = () => {
+    if (chartRef.current && monthsRef.current) {
+      monthsRef.current.scrollLeft = chartRef.current.scrollLeft;
+    }
+  };
 
   // Обрабатываем недельные данные
   const weeklyData = useMemo(() => {
@@ -115,7 +125,11 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
 
         {/* Основной график */}
         <div className="ml-12">
-          <div className="flex gap-1 h-64 items-end overflow-x-auto">
+          <div 
+            ref={chartRef}
+            onScroll={handleChartScroll}
+            className="flex gap-1 h-64 items-end overflow-x-auto"
+          >
             {displayData.map((week, index) => {
               const plannedHeight = maxValue > 0 ? (formatHours(week.planned_duration) / maxValue) * 100 : 0;
               const completedHeight = maxValue > 0 ? (formatHours(week.completed_duration) / maxValue) * 100 : 0;
@@ -179,7 +193,10 @@ export default function YearlyChart({ data, year }: YearlyChartProps) {
         </div>
         
         {/* Разделение по месяцам */}
-        <div className="ml-12 flex gap-1 mt-2">
+        <div 
+          ref={monthsRef}
+          className="ml-12 flex gap-1 mt-2 overflow-x-auto hide-scrollbar"
+        >
           {Object.entries(monthlyGroups).map(([monthKey, weeks]) => {
             const monthDate = new Date(parseInt(monthKey.split('-')[0]), parseInt(monthKey.split('-')[1]));
             const monthName = MONTH_NAMES[monthDate.getMonth()];

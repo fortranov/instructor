@@ -59,3 +59,12 @@
     font-family: var(--font-inter), system-ui, sans-serif;
   }
 }
+
+/* Скрытие полосы прокрутки для синхронизированного скролла */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
