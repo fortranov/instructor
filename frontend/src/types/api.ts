@@ -233,6 +233,10 @@ export interface Tariff {
   type: TariffType;
   view_full_plan: boolean;
   view_two_weeks: boolean;
+  allow_running: boolean;
+  allow_cycling: boolean;
+  allow_swimming: boolean;
+  allow_triathlon: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -240,6 +244,10 @@ export interface Tariff {
 export interface TariffUpdate {
   view_full_plan: boolean;
   view_two_weeks: boolean;
+  allow_running: boolean;
+  allow_cycling: boolean;
+  allow_swimming: boolean;
+  allow_triathlon: boolean;
 }
 
 export interface TariffsUpdateRequest {

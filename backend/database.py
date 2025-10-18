@@ -152,6 +152,11 @@ class Tariff(Base):
     type = Column(Enum(TariffType), nullable=False, unique=True)  # Тип тарифа
     view_full_plan = Column(Integer, default=0)  # Просмотр всего плана (0/1)
     view_two_weeks = Column(Integer, default=1)  # Просмотр двух недель (0/1)
+    # Доступные виды спорта (0/1 для каждого)
+    allow_running = Column(Integer, default=1)  # Бег
+    allow_cycling = Column(Integer, default=0)  # Велосипед
+    allow_swimming = Column(Integer, default=0)  # Плавание
+    allow_triathlon = Column(Integer, default=0)  # Триатлон
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

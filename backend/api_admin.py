@@ -143,6 +143,10 @@ async def get_all_tariffs(
             type=tariff.type,
             view_full_plan=bool(tariff.view_full_plan),
             view_two_weeks=bool(tariff.view_two_weeks),
+            allow_running=bool(getattr(tariff, 'allow_running', 1)),
+            allow_cycling=bool(getattr(tariff, 'allow_cycling', 0)),
+            allow_swimming=bool(getattr(tariff, 'allow_swimming', 0)),
+            allow_triathlon=bool(getattr(tariff, 'allow_triathlon', 0)),
             created_at=tariff.created_at,
             updated_at=tariff.updated_at
         ))
@@ -162,6 +166,10 @@ async def update_tariffs(
     if test_tariff:
         test_tariff.view_full_plan = int(request.test.view_full_plan)
         test_tariff.view_two_weeks = int(request.test.view_two_weeks)
+        test_tariff.allow_running = int(request.test.allow_running)
+        test_tariff.allow_cycling = int(request.test.allow_cycling)
+        test_tariff.allow_swimming = int(request.test.allow_swimming)
+        test_tariff.allow_triathlon = int(request.test.allow_triathlon)
         test_tariff.updated_at = datetime.utcnow()
     
     # Обновить пробный тариф
@@ -169,6 +177,10 @@ async def update_tariffs(
     if trial_tariff:
         trial_tariff.view_full_plan = int(request.trial.view_full_plan)
         trial_tariff.view_two_weeks = int(request.trial.view_two_weeks)
+        trial_tariff.allow_running = int(request.trial.allow_running)
+        trial_tariff.allow_cycling = int(request.trial.allow_cycling)
+        trial_tariff.allow_swimming = int(request.trial.allow_swimming)
+        trial_tariff.allow_triathlon = int(request.trial.allow_triathlon)
         trial_tariff.updated_at = datetime.utcnow()
     
     # Обновить про тариф
@@ -176,6 +188,10 @@ async def update_tariffs(
     if pro_tariff:
         pro_tariff.view_full_plan = int(request.pro.view_full_plan)
         pro_tariff.view_two_weeks = int(request.pro.view_two_weeks)
+        pro_tariff.allow_running = int(request.pro.allow_running)
+        pro_tariff.allow_cycling = int(request.pro.allow_cycling)
+        pro_tariff.allow_swimming = int(request.pro.allow_swimming)
+        pro_tariff.allow_triathlon = int(request.pro.allow_triathlon)
         pro_tariff.updated_at = datetime.utcnow()
     
     db.commit()

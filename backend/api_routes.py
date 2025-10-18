@@ -264,30 +264,56 @@ async def health_check():
 # Дополнительные эндпоинты для удобства
 
 @router.get("/competition-types")
-async def get_competition_types():
+async def get_competition_types(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
-    Получить список доступных типов соревнований.
+    Получить список доступных типов соревнований на основе тарифа пользователя.
     """
-    from database import CompetitionType
+    from database import CompetitionType, Tariff
     
-    return {
-        "running": [
+    # Определяем доступные виды спорта на основе тарифа пользователя
+    allow_running = True  # По умолчанию бег всегда доступен
+    allow_cycling = False
+    allow_swimming = False
+    allow_triathlon = False
+    
+    if current_user.tariff_id:
+        tariff = db.query(Tariff).filter(Tariff.id == current_user.tariff_id).first()
+        if tariff:
+            allow_running = bool(getattr(tariff, 'allow_running', 1))
+            allow_cycling = bool(getattr(tariff, 'allow_cycling', 0))
+            allow_swimming = bool(getattr(tariff, 'allow_swimming', 0))
+            allow_triathlon = bool(getattr(tariff, 'allow_triathlon', 0))
+    
+    result = {}
+    
+    if allow_running:
+        result["running"] = [
             {"value": CompetitionType.RUN_10K.value, "label": "10 километров"},
             {"value": CompetitionType.RUN_HALF_MARATHON.value, "label": "Полумарафон"},
             {"value": CompetitionType.RUN_MARATHON.value, "label": "Марафон"}
-        ],
-        "cycling": [
+        ]
+    
+    if allow_cycling:
+        result["cycling"] = [
             {"value": CompetitionType.CYCLING.value, "label": "Велосипед (указать дистанцию в км)"}
-        ],
-        "swimming": [
+        ]
+    
+    if allow_swimming:
+        result["swimming"] = [
             {"value": CompetitionType.SWIMMING.value, "label": "Плавание (указать дистанцию в метрах)"}
-        ],
-        "triathlon": [
+        ]
+    
+    if allow_triathlon:
+        result["triathlon"] = [
             {"value": CompetitionType.TRIATHLON_SPRINT.value, "label": "Спринт"},
             {"value": CompetitionType.TRIATHLON_OLYMPIC.value, "label": "Олимпийская дистанция"},
             {"value": CompetitionType.TRIATHLON_IRONMAN.value, "label": "Железная дистанция"}
         ]
-    }
+    
+    return result
 
 @router.get("/sport-types")
 async def get_sport_types():

@@ -18,23 +18,35 @@ interface TariffSettings {
   test: {
     view_full_plan: boolean;
     view_two_weeks: boolean;
+    allow_running: boolean;
+    allow_cycling: boolean;
+    allow_swimming: boolean;
+    allow_triathlon: boolean;
   };
   trial: {
     view_full_plan: boolean;
     view_two_weeks: boolean;
+    allow_running: boolean;
+    allow_cycling: boolean;
+    allow_swimming: boolean;
+    allow_triathlon: boolean;
   };
   pro: {
     view_full_plan: boolean;
     view_two_weeks: boolean;
+    allow_running: boolean;
+    allow_cycling: boolean;
+    allow_swimming: boolean;
+    allow_triathlon: boolean;
   };
 }
 
 export default function TariffsPage() {
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
   const [settings, setSettings] = useState<TariffSettings>({
-    test: { view_full_plan: false, view_two_weeks: true },
-    trial: { view_full_plan: false, view_two_weeks: true },
-    pro: { view_full_plan: true, view_two_weeks: true }
+    test: { view_full_plan: false, view_two_weeks: true, allow_running: true, allow_cycling: false, allow_swimming: false, allow_triathlon: false },
+    trial: { view_full_plan: false, view_two_weeks: true, allow_running: true, allow_cycling: false, allow_swimming: false, allow_triathlon: false },
+    pro: { view_full_plan: true, view_two_weeks: true, allow_running: true, allow_cycling: false, allow_swimming: false, allow_triathlon: false }
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,16 +85,20 @@ export default function TariffsPage() {
         
       // Обновляем настройки на основе полученных данных
       const newSettings: TariffSettings = {
-        test: { view_full_plan: false, view_two_weeks: true },
-        trial: { view_full_plan: false, view_two_weeks: true },
-        pro: { view_full_plan: true, view_two_weeks: true }
+        test: { view_full_plan: false, view_two_weeks: true, allow_running: true, allow_cycling: false, allow_swimming: false, allow_triathlon: false },
+        trial: { view_full_plan: false, view_two_weeks: true, allow_running: true, allow_cycling: false, allow_swimming: false, allow_triathlon: false },
+        pro: { view_full_plan: true, view_two_weeks: true, allow_running: true, allow_cycling: false, allow_swimming: false, allow_triathlon: false }
       };
 
       data.forEach((tariff: Tariff) => {
         if (tariff.type in newSettings) {
           newSettings[tariff.type as keyof TariffSettings] = {
             view_full_plan: tariff.view_full_plan,
-            view_two_weeks: tariff.view_two_weeks
+            view_two_weeks: tariff.view_two_weeks,
+            allow_running: tariff.allow_running ?? true,
+            allow_cycling: tariff.allow_cycling ?? false,
+            allow_swimming: tariff.allow_swimming ?? false,
+            allow_triathlon: tariff.allow_triathlon ?? false
           };
         }
       });
@@ -141,6 +157,13 @@ export default function TariffsPage() {
   const settingsLabels = {
     view_full_plan: 'Просмотр всего плана',
     view_two_weeks: 'Просмотр двух недель'
+  };
+
+  const sportSettingsLabels = {
+    allow_running: 'Бег',
+    allow_cycling: 'Велосипед',
+    allow_swimming: 'Плавание',
+    allow_triathlon: 'Триатлон'
   };
 
   if (isLoading) {
@@ -206,8 +229,11 @@ export default function TariffsPage() {
         </div>
       </div>
 
-      {/* Tariffs settings table */}
+      {/* Tariffs settings table - просмотр */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Настройки просмотра</h3>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50">
@@ -255,16 +281,81 @@ export default function TariffsPage() {
         </div>
       </div>
 
+      {/* Sports settings table - виды спорта */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Доступные виды спорта</h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Отметьте, какие виды спорта будут доступны для создания плана тренировок
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Вид спорта
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Тестовый
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Пробный
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Про
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {Object.entries(sportSettingsLabels).map(([settingKey, settingLabel]) => (
+                <tr key={settingKey} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {settingLabel}
+                  </td>
+                  {Object.entries(tariffNames).map(([tariffType]) => (
+                    <td key={tariffType} className="px-6 py-4 whitespace-nowrap text-center">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={settings[tariffType as keyof TariffSettings][settingKey as keyof typeof settings.test]}
+                          onChange={(e) => handleSettingChange(
+                            tariffType as keyof TariffSettings,
+                            settingKey,
+                            e.target.checked
+                          )}
+                          className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Description */}
       <div className="bg-blue-50 rounded-lg p-6">
         <h3 className="text-lg font-medium text-blue-900 mb-3">Описание настроек</h3>
-        <div className="space-y-2 text-sm text-blue-800">
-          <p>
-            <strong>Просмотр всего плана:</strong> Пользователи с этой настройкой могут видеть все свои тренировки в плане без ограничений по времени.
-          </p>
-          <p>
-            <strong>Просмотр двух недель:</strong> Пользователи с этой настройкой могут видеть только тренировки на следующие две недели.
-          </p>
+        <div className="space-y-3 text-sm text-blue-800">
+          <div>
+            <strong>Настройки просмотра:</strong>
+            <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+              <li><strong>Просмотр всего плана:</strong> Пользователи могут видеть все свои тренировки в плане без ограничений по времени.</li>
+              <li><strong>Просмотр двух недель:</strong> Пользователи могут видеть только тренировки на следующие две недели.</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Доступные виды спорта:</strong>
+            <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+              <li><strong>Бег:</strong> Пользователи могут создавать планы на беговые дистанции (10 км, полумарафон, марафон).</li>
+              <li><strong>Велосипед:</strong> Пользователи могут создавать планы для велосипедных тренировок с указанием дистанции.</li>
+              <li><strong>Плавание:</strong> Пользователи могут создавать планы для плавания с указанием дистанции.</li>
+              <li><strong>Триатлон:</strong> Пользователи могут создавать планы для триатлона (спринт, олимпийская, железная дистанция).</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -290,19 +381,53 @@ export default function TariffsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tariffs.map((tariff) => (
             <div key={tariff.id} className="border border-gray-200 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-2">{tariff.name}</h4>
-              <div className="space-y-1 text-sm text-gray-600">
-                <div className="flex items-center justify-between">
-                  <span>Просмотр всего плана:</span>
-                  <span className={tariff.view_full_plan ? 'text-green-600' : 'text-red-600'}>
-                    {tariff.view_full_plan ? 'Да' : 'Нет'}
-                  </span>
+              <h4 className="font-medium text-gray-900 mb-3">{tariff.name}</h4>
+              <div className="space-y-2 text-sm">
+                <div className="pb-2 border-b border-gray-200">
+                  <div className="font-medium text-gray-700 mb-1">Просмотр:</div>
+                  <div className="space-y-1 text-gray-600">
+                    <div className="flex items-center justify-between">
+                      <span>Весь план:</span>
+                      <span className={tariff.view_full_plan ? 'text-green-600' : 'text-red-600'}>
+                        {tariff.view_full_plan ? 'Да' : 'Нет'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Две недели:</span>
+                      <span className={tariff.view_two_weeks ? 'text-green-600' : 'text-red-600'}>
+                        {tariff.view_two_weeks ? 'Да' : 'Нет'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>Просмотр двух недель:</span>
-                  <span className={tariff.view_two_weeks ? 'text-green-600' : 'text-red-600'}>
-                    {tariff.view_two_weeks ? 'Да' : 'Нет'}
-                  </span>
+                <div>
+                  <div className="font-medium text-gray-700 mb-1">Виды спорта:</div>
+                  <div className="space-y-1 text-gray-600">
+                    <div className="flex items-center justify-between">
+                      <span>Бег:</span>
+                      <span className={tariff.allow_running ? 'text-green-600' : 'text-red-600'}>
+                        {tariff.allow_running ? 'Да' : 'Нет'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Велосипед:</span>
+                      <span className={tariff.allow_cycling ? 'text-green-600' : 'text-red-600'}>
+                        {tariff.allow_cycling ? 'Да' : 'Нет'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Плавание:</span>
+                      <span className={tariff.allow_swimming ? 'text-green-600' : 'text-red-600'}>
+                        {tariff.allow_swimming ? 'Да' : 'Нет'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Триатлон:</span>
+                      <span className={tariff.allow_triathlon ? 'text-green-600' : 'text-red-600'}>
+                        {tariff.allow_triathlon ? 'Да' : 'Нет'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

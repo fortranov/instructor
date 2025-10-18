@@ -10,7 +10,7 @@ import Navigation from '@/components/navigation';
 import Calendar from '@/components/calendar';
 import apiClient from '@/lib/api';
 import { Workout, TrainingPlan, UserTariffResponse } from '@/types/api';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, getCompetitionTypeLabel } from '@/lib/utils';
 import { RotateCcw } from 'lucide-react';
 // import { format } from 'date-fns';
 // import { ru } from 'date-fns/locale';
@@ -241,7 +241,7 @@ export default function PlanPage() {
                 <CardTitle>Информация о плане</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <span className="text-sm text-gray-600">Дата соревнования:</span>
                     <p className="font-medium">
@@ -250,11 +250,7 @@ export default function PlanPage() {
                   </div>
                   <div>
                     <span className="text-sm text-gray-600">Тип соревнования:</span>
-                    <p className="font-medium">{trainingPlan.competition_type}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">Сложность:</span>
-                    <p className="font-medium">{trainingPlan.complexity}/1000</p>
+                    <p className="font-medium">{getCompetitionTypeLabel(trainingPlan.competition_type)}</p>
                   </div>
                   <div className="flex gap-2">
                     <Link href="/profile">

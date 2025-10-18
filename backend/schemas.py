@@ -212,6 +212,10 @@ class TariffResponse(BaseModel):
     type: TariffType
     view_full_plan: bool
     view_two_weeks: bool
+    allow_running: bool = Field(default=True, description="Доступен ли бег")
+    allow_cycling: bool = Field(default=False, description="Доступен ли велосипед")
+    allow_swimming: bool = Field(default=False, description="Доступно ли плавание")
+    allow_triathlon: bool = Field(default=False, description="Доступен ли триатлон")
     created_at: datetime
     updated_at: datetime
     
@@ -222,6 +226,10 @@ class TariffUpdate(BaseModel):
     """Обновление настроек тарифа"""
     view_full_plan: bool = Field(..., description="Просмотр всего плана")
     view_two_weeks: bool = Field(..., description="Просмотр двух недель")
+    allow_running: bool = Field(default=True, description="Доступен ли бег")
+    allow_cycling: bool = Field(default=False, description="Доступен ли велосипед")
+    allow_swimming: bool = Field(default=False, description="Доступно ли плавание")
+    allow_triathlon: bool = Field(default=False, description="Доступен ли триатлон")
 
 class TariffsUpdateRequest(BaseModel):
     """Запрос на обновление всех тарифов"""
