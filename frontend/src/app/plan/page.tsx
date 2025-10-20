@@ -9,8 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Navigation from '@/components/navigation';
 import Calendar from '@/components/calendar';
 import apiClient from '@/lib/api';
-import { Workout, TrainingPlan } from '@/types/api';
-import { getErrorMessage } from '@/lib/utils';
+import { Workout, TrainingPlan, UserTariffResponse } from '@/types/api';
+import { getErrorMessage, getCompetitionTypeLabel } from '@/lib/utils';
+import { RotateCcw } from 'lucide-react';
+// import { format } from 'date-fns';
+// import { ru } from 'date-fns/locale';
 
 export default function PlanPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -21,12 +24,37 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasCheckedPlan, setHasCheckedPlan] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [userTariff, setUserTariff] = useState<UserTariffResponse | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/auth/login');
     }
   }, [isAuthenticated, authLoading, router]);
+
+  // Проверка ориентации устройства
+  useEffect(() => {
+    const checkOrientation = () => {
+      // Проверяем, что это мобильное устройство и находится в портретной ориентации
+      const isMobile = window.innerWidth <= 768;
+      const isPortraitOrientation = window.innerHeight > window.innerWidth;
+      setIsPortrait(isMobile && isPortraitOrientation);
+    };
+
+    // Проверяем при загрузке
+    checkOrientation();
+
+    // Добавляем слушатель изменения размера окна
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    // Очистка слушателей при размонтировании
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
 
   // Проверяем наличие плана у пользователя
   useEffect(() => {
@@ -48,6 +76,24 @@ export default function PlanPage() {
       checkUserPlan();
     }
   }, [user?.uin, hasCheckedPlan]);
+
+  // Загрузка тарифа пользователя
+  useEffect(() => {
+    const loadUserTariff = async () => {
+      if (!user) return;
+      
+      try {
+        const tariff = await apiClient.getUserTariff();
+        setUserTariff(tariff);
+      } catch (err) {
+        console.log('Ошибка загрузки тарифа:', getErrorMessage(err));
+      }
+    };
+
+    if (user) {
+      loadUserTariff();
+    }
+  }, [user]);
 
   const handleMonthChange = useCallback(async (startDate: string, endDate: string) => {
     if (!user?.uin) return;
@@ -155,9 +201,6 @@ export default function PlanPage() {
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">План тренировок</h1>
-          <p className="text-gray-600 mt-2">
-            Ваш персональный календарь тренировок
-          </p>
         </div>
 
         {error && (
@@ -198,11 +241,7 @@ export default function PlanPage() {
                 <CardTitle>Информация о плане</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <span className="text-sm text-gray-600">Сложность:</span>
-                    <p className="font-medium">{trainingPlan.complexity}/1000</p>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <span className="text-sm text-gray-600">Дата соревнования:</span>
                     <p className="font-medium">
@@ -211,7 +250,7 @@ export default function PlanPage() {
                   </div>
                   <div>
                     <span className="text-sm text-gray-600">Тип соревнования:</span>
-                    <p className="font-medium">{trainingPlan.competition_type}</p>
+                    <p className="font-medium">{getCompetitionTypeLabel(trainingPlan.competition_type)}</p>
                   </div>
                   <div className="flex gap-2">
                     <Link href="/profile">
@@ -227,14 +266,33 @@ export default function PlanPage() {
               </CardContent>
             </Card>
 
-            {/* Календарь тренировок */}
-            <Calendar
-              workouts={workouts}
-              onMonthChange={handleMonthChange}
-              onWorkoutMove={handleWorkoutMove}
-              onWorkoutToggle={handleWorkoutToggle}
-              loading={loading}
-            />
+            {/* Календарь тренировок или сообщение о повороте устройства */}
+            {isPortrait ? (
+              <Card className="mb-6">
+                <CardContent className="p-8 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <RotateCcw className="w-16 h-16 text-blue-500 animate-pulse" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Поверните устройство
+                      </h3>
+                      <p className="text-gray-600">
+                        Для удобного просмотра календаря тренировок поверните устройство в горизонтальное положение
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Calendar
+                workouts={workouts}
+                onMonthChange={handleMonthChange}
+                onWorkoutMove={handleWorkoutMove}
+                onWorkoutToggle={handleWorkoutToggle}
+                loading={loading}
+                userTariff={userTariff}
+              />
+            )}
           </>
         )}
       </div>

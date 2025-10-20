@@ -13,10 +13,25 @@ import {
   WorkoutTypeOption,
   WorkoutDateUpdate,
   WorkoutCompletionMarkCreate,
-  WorkoutCompletionMarkResponse
+  WorkoutCompletionMarkResponse,
+  PlanWizardRequest,
+  PlanWizardResponse,
+  WeeklyWorkoutCountRequest,
+  WeeklyWorkoutCountResponse,
+  AdminUser,
+  UserTariffUpdate,
+  Tariff,
+  TariffsUpdateRequest,
+  WorkoutCoefficients,
+  WorkoutCoefficientsUpdate,
+  UserTariffResponse,
+  TariffPurchaseRequest,
+  TariffPriceResponse,
+  AppSettingResponse,
+  AppSettingUpdate
 } from '@/types/api';
 
-// Всегда используем относительный путь - это работает как в dev, так и в production
+// Используем относительный путь - Next.js проксирует запросы к бэкенду
 const API_BASE_URL = '/api/v1';
 
 class ApiClient {
@@ -160,6 +175,15 @@ class ApiClient {
     return this.request<WorkoutCompletionMarkResponse>('POST', `/workouts/${workoutId}/completion`, completionData);
   }
 
+  // Мастер создания планов
+  async createPlanWithWizard(wizardData: PlanWizardRequest): Promise<PlanWizardResponse> {
+    return this.request<PlanWizardResponse>('POST', '/plans/wizard', wizardData);
+  }
+
+  async getWeeklyWorkoutCount(countData: WeeklyWorkoutCountRequest): Promise<WeeklyWorkoutCountResponse> {
+    return this.request<WeeklyWorkoutCountResponse>('POST', '/plans/wizard/workout-count', countData);
+  }
+
   async unmarkWorkoutCompleted(workoutId: number): Promise<void> {
     return this.request<void>('DELETE', `/workouts/${workoutId}/completion`);
   }
@@ -208,6 +232,94 @@ class ApiClient {
   // Проверка здоровья сервиса
   async healthCheck(): Promise<{ status: string; message: string }> {
     return this.request<{ status: string; message: string }>('GET', '/health');
+  }
+
+  // Админские методы
+  
+  // Проверка прав администратора
+  async checkAdminRights(): Promise<{ is_admin: boolean; user_email: string; message: string }> {
+    return this.request<{ is_admin: boolean; user_email: string; message: string }>('GET', '/admin/check-admin');
+  }
+
+  // Управление пользователями
+  async getAdminUsers(): Promise<AdminUser[]> {
+    console.log('API: Запрос списка пользователей...');
+    try {
+      const result = await this.request<AdminUser[]>('GET', '/admin/users');
+      console.log('API: Получен список пользователей:', result);
+      return result;
+    } catch (error) {
+      console.error('API: Ошибка получения списка пользователей:', error);
+      throw error;
+    }
+  }
+
+  async updateUserTariff(userTariffUpdate: UserTariffUpdate): Promise<{ message: string }> {
+    console.log('API: Обновление тарифа пользователя:', userTariffUpdate);
+    try {
+      const result = await this.request<{ message: string }>('PUT', '/admin/users/tariff', userTariffUpdate);
+      console.log('API: Тариф пользователя обновлен:', result);
+      return result;
+    } catch (error) {
+      console.error('API: Ошибка обновления тарифа пользователя:', error);
+      throw error;
+    }
+  }
+
+  // Управление тарифами
+  async getAdminTariffs(): Promise<Tariff[]> {
+    return this.request<Tariff[]>('GET', '/admin/tariffs');
+  }
+
+  async updateTariffs(tariffsUpdate: TariffsUpdateRequest): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', '/admin/tariffs', tariffsUpdate);
+  }
+
+  // Управление коэффициентами тренировок
+  async getWorkoutCoefficients(): Promise<WorkoutCoefficients> {
+    console.log('API: Запрос коэффициентов тренировок...');
+    try {
+      const result = await this.request<WorkoutCoefficients>('GET', '/admin/workout-coefficients');
+      console.log('API: Получены коэффициенты тренировок:', result);
+      return result;
+    } catch (error) {
+      console.error('API: Ошибка получения коэффициентов тренировок:', error);
+      throw error;
+    }
+  }
+
+  async updateWorkoutCoefficients(coefficientsUpdate: WorkoutCoefficientsUpdate): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', '/admin/workout-coefficients', coefficientsUpdate);
+  }
+
+  // Методы для работы с тарифами пользователей
+  async getUserTariff(): Promise<UserTariffResponse> {
+    return this.request<UserTariffResponse>('GET', '/user/tariff');
+  }
+
+  async getTariffPrice(months: number = 1): Promise<TariffPriceResponse> {
+    return this.request<TariffPriceResponse>('GET', `/user/tariff/price?months=${months}`);
+  }
+
+  async purchaseTariff(purchaseRequest: TariffPurchaseRequest): Promise<{ message: string; tariff_type: string; months: number; price: number; savings: number; note: string }> {
+    return this.request<{ message: string; tariff_type: string; months: number; price: number; savings: number; note: string }>('POST', '/user/tariff/purchase', purchaseRequest);
+  }
+
+  // Методы для работы с настройками приложения (админские)
+  async getAppSettings(): Promise<AppSettingResponse[]> {
+    return this.request<AppSettingResponse[]>('GET', '/admin/settings');
+  }
+
+  async getAppSetting(key: string): Promise<AppSettingResponse> {
+    return this.request<AppSettingResponse>('GET', `/admin/settings/${key}`);
+  }
+
+  async updateAppSetting(key: string, settingUpdate: AppSettingUpdate): Promise<{ message: string }> {
+    return this.request<{ message: string }>('PUT', `/admin/settings/${key}`, settingUpdate);
+  }
+
+  async initDefaultSettings(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('POST', '/admin/settings/init');
   }
 }
 

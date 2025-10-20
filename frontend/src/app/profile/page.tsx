@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Navigation from '@/components/navigation';
+import PlanWizardModal, { PlanWizardData } from '@/components/plan-wizard-modal';
+import TariffModal from '@/components/tariff-modal';
 import apiClient from '@/lib/api';
-import { CompetitionType, CompetitionTypesResponse } from '@/types/api';
+import { CompetitionType, CompetitionTypesResponse, PlanWizardRequest, TrainingPlan, UserTariffResponse } from '@/types/api';
 import { getErrorMessage, isValidEmail, isValidPassword } from '@/lib/utils';
+import { ChevronDown, Wand2 } from 'lucide-react';
 
 const arePreferredDaysEqual = (a?: number[], b?: number[]) => {
   const normalize = (days?: number[]) =>
@@ -51,6 +54,20 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Состояния мастера планов
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isManualSettingsOpen, setIsManualSettingsOpen] = useState(false);
+  const [wizardLoading, setWizardLoading] = useState(false);
+  
+  // Состояние существующего плана
+  const [existingPlan, setExistingPlan] = useState<TrainingPlan | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  
+  // Состояние тарифа
+  const [userTariff, setUserTariff] = useState<UserTariffResponse | null>(null);
+  const [tariffLoading, setTariffLoading] = useState(false);
+  const [isTariffModalOpen, setIsTariffModalOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -79,6 +96,59 @@ export default function ProfilePage() {
 
     loadCompetitionTypes();
   }, []);
+
+  // Загрузка существующего плана пользователя
+  useEffect(() => {
+    const loadExistingPlan = async () => {
+      if (!user?.uin) return;
+      
+      setPlanLoading(true);
+      try {
+        const plan = await apiClient.getTrainingPlan(user.uin);
+        setExistingPlan(plan);
+        
+        // Заполняем поля формы данными из существующего плана
+        setComplexity(plan.complexity);
+        setCompetitionDate(plan.competition_date);
+        setCompetitionType(plan.competition_type);
+        if (plan.competition_distance) {
+          setCompetitionDistance(plan.competition_distance.toString());
+        }
+      } catch (err) {
+        // Если план не найден, это нормально - пользователь еще не создал план
+        console.log('План не найден или ошибка загрузки:', getErrorMessage(err));
+        setExistingPlan(null);
+      } finally {
+        setPlanLoading(false);
+      }
+    };
+
+    if (user?.uin) {
+      loadExistingPlan();
+    }
+  }, [user?.uin]);
+
+  // Загрузка тарифа пользователя
+  useEffect(() => {
+    const loadUserTariff = async () => {
+      if (!user) return;
+      
+      setTariffLoading(true);
+      try {
+        const tariff = await apiClient.getUserTariff();
+        setUserTariff(tariff);
+      } catch (err) {
+        console.log('Ошибка загрузки тарифа:', getErrorMessage(err));
+        setUserTariff(null);
+      } finally {
+        setTariffLoading(false);
+      }
+    };
+
+    if (user) {
+      loadUserTariff();
+    }
+  }, [user]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,6 +237,11 @@ export default function ProfilePage() {
       return;
     }
 
+    if (preferredWorkoutDays.length === 0) {
+      setError('Выберите хотя бы один день для тренировок');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -186,8 +261,9 @@ export default function ProfilePage() {
         competition_distance: competitionDistance ? parseFloat(competitionDistance) : undefined,
       };
 
-      await apiClient.createTrainingPlan(planData);
-      setSuccess('План тренировок успешно создан! Перейдите в раздел "План" для просмотра.');
+      const createdPlan = await apiClient.createTrainingPlan(planData);
+      setExistingPlan(createdPlan);
+      setSuccess(existingPlan ? 'План тренировок успешно обновлен! Перейдите в раздел "План" для просмотра.' : 'План тренировок успешно создан! Перейдите в раздел "План" для просмотра.');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -218,6 +294,63 @@ export default function ProfilePage() {
     });
   };
 
+  const handleWizardSubmit = async (wizardData: PlanWizardData) => {
+    if (!user?.uin) {
+      setError('Ошибка: не удается определить пользователя');
+      return;
+    }
+
+    setWizardLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const wizardRequest: PlanWizardRequest = {
+        weekly_distance: wizardData.weeklyDistance,
+        comfortable_pace: wizardData.comfortablePace,
+        target_distance: wizardData.targetDistance,
+        competition_date: wizardData.competitionDate,
+        has_specific_goal: wizardData.hasSpecificGoal,
+        preferred_workout_days: wizardData.preferredWorkoutDays,
+      };
+
+      const response = await apiClient.createPlanWithWizard(wizardRequest);
+      
+      // Загружаем обновленный план
+      try {
+        const updatedPlan = await apiClient.getTrainingPlan(user.uin);
+        setExistingPlan(updatedPlan);
+        
+        // Обновляем поля формы
+        setComplexity(updatedPlan.complexity);
+        setCompetitionDate(updatedPlan.competition_date);
+        setCompetitionType(updatedPlan.competition_type);
+        if (updatedPlan.competition_distance) {
+          setCompetitionDistance(updatedPlan.competition_distance.toString());
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки обновленного плана:', getErrorMessage(err));
+      }
+      
+      setSuccess(`План тренировок успешно ${existingPlan ? 'обновлен' : 'создан'}! Сложность: ${response.complexity}. Перейдите в раздел "План" для просмотра.`);
+      setIsWizardOpen(false);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setWizardLoading(false);
+    }
+  };
+
+  const handleTariffSuccess = async () => {
+    // Перезагружаем тариф после успешной покупки
+    try {
+      const tariff = await apiClient.getUserTariff();
+      setUserTariff(tariff);
+    } catch (err) {
+      console.log('Ошибка перезагрузки тарифа:', getErrorMessage(err));
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -234,7 +367,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Профиль</h1>
           <p className="text-gray-600 mt-2">
@@ -351,141 +484,282 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Настройки плана тренировок */}
+          {/* Объединенный блок: Тарифный план и План тренировок */}
           <Card>
             <CardHeader>
-              <CardTitle>План тренировок</CardTitle>
+              <CardTitle>План тренировок и тарифы</CardTitle>
               <CardDescription>
-                Создайте или обновите свой план тренировок
+                Управление вашим планом тренировок и тарифным планом
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleCreatePlan} className="space-y-4">
-                <div>
-                  <label htmlFor="complexity" className="block text-sm font-medium text-gray-700 mb-1">
-                    Уровень сложности: {complexity}
-                  </label>
-                  <input
-                    id="complexity"
-                    type="range"
-                    min="0"
-                    max="1000"
-                    step="50"
-                    value={complexity}
-                    onChange={(e) => setComplexity(parseInt(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Начинающий (0)</span>
-                    <span>Профессионал (1000)</span>
-                  </div>
+              {/* Секция тарифного плана */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Тарифный план</h3>
+              {tariffLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="text-sm text-gray-500">Загрузка тарифа...</div>
                 </div>
-
-                <div>
-                  <label htmlFor="competitionDate" className="block text-sm font-medium text-gray-700 mb-1">
-                    Дата соревнования
-                  </label>
-                  <Input
-                    id="competitionDate"
-                    type="date"
-                    value={competitionDate}
-                    onChange={(e) => setCompetitionDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="competitionType" className="block text-sm font-medium text-gray-700 mb-1">
-                    Тип соревнования
-                  </label>
-                  <select
-                    id="competitionType"
-                    value={competitionType}
-                    onChange={(e) => setCompetitionType(e.target.value as CompetitionType)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {competitionTypes && (
-                      <>
-                        <optgroup label="Бег">
-                          {competitionTypes.running.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Велосипед">
-                          {competitionTypes.cycling.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Плавание">
-                          {competitionTypes.swimming.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Триатлон">
-                          {competitionTypes.triathlon.map(type => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      </>
-                    )}
-                  </select>
-                </div>
-
-                {needsDistance && (
+              ) : (
+                <div className="space-y-4">
+                  {existingPlan && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <div className="text-sm space-y-1">
+                        <div><strong>Сложность:</strong> {existingPlan.complexity}</div>
+                        <div><strong>Дата соревнования:</strong> {new Date(existingPlan.competition_date).toLocaleDateString('ru-RU')}</div>
+                        <div><strong>Тип соревнования:</strong> {
+                          competitionTypes ? 
+                            [...competitionTypes.running, ...competitionTypes.cycling, ...competitionTypes.swimming, ...competitionTypes.triathlon]
+                              .find(type => type.value === existingPlan.competition_type)?.label || existingPlan.competition_type
+                            : existingPlan.competition_type
+                        }</div>
+                        {existingPlan.competition_distance && (
+                          <div><strong>Дистанция:</strong> {existingPlan.competition_distance} {existingPlan.competition_type === 'cycling' ? 'км' : 'м'}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div>
-                    <label htmlFor="competitionDistance" className="block text-sm font-medium text-gray-700 mb-1">
-                      Дистанция {competitionType === CompetitionType.CYCLING ? '(км)' : '(метры)'}
-                    </label>
-                    <Input
-                      id="competitionDistance"
-                      type="number"
-                      step="0.1"
-                      min="0.1"
-                      value={competitionDistance}
-                      onChange={(e) => setCompetitionDistance(e.target.value)}
-                      placeholder={competitionType === CompetitionType.CYCLING ? 'Например: 40' : 'Например: 1500'}
-                    />
+                    <span className="text-sm font-medium text-gray-700">Текущий тариф: </span>
+                    <span className="text-sm text-gray-900 font-semibold">
+                      {userTariff?.tariff_name || 'Не назначен'}
+                    </span>
+                  </div>
+
+                  {/* Отображение дней до конца тестового периода */}
+                  {userTariff?.tariff_type === 'test' && userTariff?.test_period_days_remaining !== null && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-600">⏰</span>
+                        <div className="text-sm">
+                          <span className="font-semibold text-yellow-900">
+                            {userTariff.test_period_days_remaining === 0 
+                              ? 'Тестовый период истек'
+                              : `До конца тестового периода: ${userTariff.test_period_days_remaining} ${
+                                  userTariff.test_period_days_remaining === 1 ? 'день' :
+                                  userTariff.test_period_days_remaining < 5 ? 'дня' : 'дней'
+                                }`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Уведомление о неактивном тарифе */}
+                  {userTariff?.tariff_type === 'inactive' && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600">⚠️</span>
+                        <div className="text-sm text-red-900">
+                          <div className="font-semibold">Тестовый период истек</div>
+                          <div className="text-xs mt-1">
+                            Обновите тариф для полного доступа к тренировкам
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Button
+                    onClick={() => setIsTariffModalOpen(true)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    {userTariff?.tariff_type === 'pro' ? 'Продлить тарифный план' : 'Сменить тарифный план'}
+                  </Button>
+                </div>
+              )}
+              </div>
+
+              {/* Секция плана тренировок */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  {existingPlan ? 'Управление планом тренировок' : 'Создание плана тренировок'}
+                </h3>
+                
+                {/* Кнопка мастера планов */}
+                <div className="mb-6">
+                <Button
+                  onClick={() => setIsWizardOpen(true)}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
+                  disabled={loading || wizardLoading}
+                >
+                  <Wand2 className="w-5 h-5" />
+                  <span>{existingPlan ? 'Мастер изменения планов' : 'Мастер создания планов'}</span>
+                </Button>
+                <p className="text-sm text-gray-500 mt-2 text-center">
+                  {existingPlan ? 'Ответьте на несколько вопросов, и мы обновим ваш план' : 'Ответьте на несколько вопросов, и мы создадим идеальный план для вас'}
+                </p>
+              </div>
+
+              {/* Выпадающий список для ручной настройки */}
+              <div className="border-t pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsManualSettingsOpen(!isManualSettingsOpen)}
+                  className="w-full flex items-center justify-between p-3 text-left text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                  disabled={loading || wizardLoading}
+                >
+                  <span>Ручная настройка плана</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isManualSettingsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isManualSettingsOpen && (
+                  <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    {planLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-gray-500">Загрузка данных плана...</div>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleCreatePlan} className="space-y-4">
+                        <div>
+                          <label htmlFor="complexity" className="block text-sm font-medium text-gray-700 mb-1">
+                            Уровень сложности: {complexity}
+                          </label>
+                          <input
+                            id="complexity"
+                            type="range"
+                            min="0"
+                            max="1000"
+                            step="50"
+                            value={complexity}
+                            onChange={(e) => setComplexity(parseInt(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Начинающий (0)</span>
+                            <span>Профессионал (1000)</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label htmlFor="competitionDate" className="block text-sm font-medium text-gray-700 mb-1">
+                            Дата соревнования
+                          </label>
+                          <Input
+                            id="competitionDate"
+                            type="date"
+                            value={competitionDate}
+                            onChange={(e) => setCompetitionDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="competitionType" className="block text-sm font-medium text-gray-700 mb-1">
+                            Тип соревнования
+                          </label>
+                          <select
+                            id="competitionType"
+                            value={competitionType}
+                            onChange={(e) => setCompetitionType(e.target.value as CompetitionType)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            {competitionTypes && (
+                              <>
+                                <optgroup label="Бег">
+                                  {competitionTypes.running.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Велосипед">
+                                  {competitionTypes.cycling.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Плавание">
+                                  {competitionTypes.swimming.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Триатлон">
+                                  {competitionTypes.triathlon.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                      {type.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              </>
+                            )}
+                          </select>
+                        </div>
+
+                        {needsDistance && (
+                          <div>
+                            <label htmlFor="competitionDistance" className="block text-sm font-medium text-gray-700 mb-1">
+                              Дистанция {competitionType === CompetitionType.CYCLING ? '(км)' : '(метры)'}
+                            </label>
+                            <Input
+                              id="competitionDistance"
+                              type="number"
+                              step="0.1"
+                              min="0.1"
+                              value={competitionDistance}
+                              onChange={(e) => setCompetitionDistance(e.target.value)}
+                              placeholder={competitionType === CompetitionType.CYCLING ? 'Например: 40' : 'Например: 1500'}
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Предпочтительные дни для тренировок
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {weekDays.map((day) => (
+                              <label key={day.value} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={preferredWorkoutDays.includes(day.value)}
+                                  onChange={() => handleDayToggle(day.value)}
+                                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                />
+                                <span className="text-sm text-gray-700">{day.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Выберите дни, в которые вы предпочитаете тренироваться
+                          </p>
+                        </div>
+
+                        <Button type="submit" disabled={loading || planLoading} className="w-full">
+                          {loading ? (existingPlan ? 'Обновление плана...' : 'Создание плана...') : (existingPlan ? 'Изменить план тренировок' : 'Создать план тренировок')}
+                        </Button>
+                      </form>
+                    )}
                   </div>
                 )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Предпочтительные дни для тренировок
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {weekDays.map((day) => (
-                      <label key={day.value} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={preferredWorkoutDays.includes(day.value)}
-                          onChange={() => handleDayToggle(day.value)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <span className="text-sm text-gray-700">{day.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Выберите дни, в которые вы предпочитаете тренироваться
-                  </p>
-                </div>
-
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? 'Создание плана...' : 'Создать план тренировок'}
-                </Button>
-              </form>
+              </div>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Модальное окно мастера планов */}
+      <PlanWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onSubmit={handleWizardSubmit}
+        loading={wizardLoading}
+        initialPreferredDays={preferredWorkoutDays}
+      />
+
+      {/* Модальное окно тарифов */}
+      <TariffModal
+        isOpen={isTariffModalOpen}
+        onClose={() => setIsTariffModalOpen(false)}
+        currentTariff={userTariff?.tariff_type || null}
+        onSuccess={handleTariffSuccess}
+      />
     </div>
   );
 }

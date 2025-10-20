@@ -94,15 +94,12 @@ make migrate
 make migrate-status
 ```
 
-### Откат миграций
+### Откат изменений
 
 ```bash
-# Откатить до определенной версии
-make migrate-rollback
-# Введите версию при запросе
-
-# Или напрямую
-docker-compose exec backend python run_migrations.py rollback --version 001_add_preferred_workout_days
+# Откатить изменения через Git
+git checkout previous-version
+make rebuild
 ```
 
 ## Мониторинг
@@ -118,8 +115,6 @@ make backend-logs
 make frontend-logs
 make nginx-logs
 
-# Логи миграций
-docker-compose logs migrations
 ```
 
 ### Проверка здоровья
@@ -210,17 +205,14 @@ ufw enable
 
 ## Устранение неполадок
 
-### Проблемы с миграциями
+### Проблемы с развертыванием
 
 ```bash
-# Проверить статус миграций
-make migrate-status
+# Пересобрать все контейнеры
+make rebuild
 
-# Просмотреть логи миграций
-docker-compose logs migrations
-
-# Выполнить миграции вручную
-docker-compose exec backend python run_migrations.py migrate
+# Проверить логи всех сервисов
+make logs
 ```
 
 ### Проблемы с базой данных

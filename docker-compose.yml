@@ -4,6 +4,7 @@ services:
 
   # Backend FastAPI сервис
   backend:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -24,12 +25,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    restart: unless-stopped
     networks:
       - reverse_proxy
 
   # Frontend Next.js приложение
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -40,9 +41,9 @@ services:
       - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
-    restart: unless-stopped
     networks:
       - reverse_proxy
+          
 
   # Nginx reverse proxy для продакшена
   #nginx:
@@ -64,6 +65,8 @@ services:
 # Создаем сеть для взаимодействия сервисов
 networks:
   reverse_proxy:
+    name: main-network
+    external: true
     driver: bridge
 
 # Создаем volume для данных базы

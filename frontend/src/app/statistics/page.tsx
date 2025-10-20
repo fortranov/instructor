@@ -133,30 +133,6 @@ export default function StatisticsPage() {
           </p>
         </div>
 
-        {/* Селектор года со стрелками */}
-        <Card className="p-6 mb-8">
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleYearChange(selectedYear - 1)}
-              disabled={!availableYears.includes(selectedYear - 1)}
-            >
-              ←
-            </Button>
-            <div className="text-xl font-semibold text-gray-900">
-              {selectedYear}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleYearChange(selectedYear + 1)}
-              disabled={!availableYears.includes(selectedYear + 1)}
-            >
-              →
-            </Button>
-          </div>
-        </Card>
 
         {loading && (
           <Card className="p-8 text-center">
@@ -175,64 +151,97 @@ export default function StatisticsPage() {
 
         {yearlyStats && !loading && !error && (
           <>
-            {/* Процент выполнения */}
+            {/* Объединенный блок: селектор года и процент выполнения */}
             <Card className="p-6 mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Процент выполнения за {selectedYear} год
-                {selectedYear === new Date().getFullYear() && (
-                  <span className="text-sm font-normal text-gray-500 ml-2">
-                    (до сегодняшнего дня)
-                  </span>
-                )}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      По времени
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {getCompletionRateUpToToday(
-                        yearlyStats.total_completed_duration,
-                        yearlyStats.total_planned_duration
-                      )}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full"
-                      style={{
-                        width: `${Math.min(100, getCompletionRateUpToToday(
-                          yearlyStats.total_completed_duration,
-                          yearlyStats.total_planned_duration
-                        ))}%`,
-                      }}
-                    ></div>
+              <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                {/* Левая часть: селектор года */}
+                <div className="lg:w-1/3">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Год
+                  </h3>
+                  <div className="flex items-center justify-center lg:justify-start gap-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleYearChange(selectedYear - 1)}
+                      disabled={!availableYears.includes(selectedYear - 1)}
+                    >
+                      ←
+                    </Button>
+                    <div className="text-xl font-semibold text-gray-900 min-w-[80px] text-center">
+                      {selectedYear}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleYearChange(selectedYear + 1)}
+                      disabled={!availableYears.includes(selectedYear + 1)}
+                    >
+                      →
+                    </Button>
                   </div>
                 </div>
-                
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      По количеству тренировок
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {getCompletionRateUpToToday(
-                        yearlyStats.total_completed_workouts,
-                        yearlyStats.total_planned_workouts
-                      )}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{
-                        width: `${Math.min(100, getCompletionRateUpToToday(
-                          yearlyStats.total_completed_workouts,
-                          yearlyStats.total_planned_workouts
-                        ))}%`,
-                      }}
-                    ></div>
+
+                {/* Правая часть: статистика выполнения */}
+                <div className="lg:w-2/3">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Процент выполнения за {selectedYear} год
+                    {selectedYear === new Date().getFullYear() && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        (до сегодняшнего дня)
+                      </span>
+                    )}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          По времени
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {getCompletionRateUpToToday(
+                            yearlyStats.total_completed_duration,
+                            yearlyStats.total_planned_duration
+                          )}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full"
+                          style={{
+                            width: `${Math.min(100, getCompletionRateUpToToday(
+                              yearlyStats.total_completed_duration,
+                              yearlyStats.total_planned_duration
+                            ))}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          По количеству тренировок
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {getCompletionRateUpToToday(
+                            yearlyStats.total_completed_workouts,
+                            yearlyStats.total_planned_workouts
+                          )}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-green-600 h-2 rounded-full"
+                          style={{
+                            width: `${Math.min(100, getCompletionRateUpToToday(
+                              yearlyStats.total_completed_workouts,
+                              yearlyStats.total_planned_workouts
+                            ))}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

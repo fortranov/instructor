@@ -18,10 +18,16 @@ from schemas import (
     Token,
     UserResponse,
     UserUpdate,
-    WorkoutDateUpdate
+    WorkoutDateUpdate,
+    PlanWizardRequest,
+    PlanWizardResponse,
+    WeeklyWorkoutCountRequest,
+    WeeklyWorkoutCountResponse
 )
 # Удалены импорты simple_schemas - endpoints перенесены в отдельные файлы
 from plan_generator import PlanGenerator
+from plan_wizard import calculate_plan_complexity, determine_competition_type
+from training_tables import TrainingTables
 from auth import (
     authenticate_user,
     create_user,
@@ -113,6 +119,117 @@ async def delete_training_plan(
             detail=f"План тренировок для пользователя {uin} не найден"
         )
 
+@router.post("/plans/wizard", response_model=PlanWizardResponse, status_code=status.HTTP_201_CREATED)
+async def create_plan_with_wizard(
+    wizard_data: PlanWizardRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Создать план тренировок с помощью мастера.
+    
+    Мастер анализирует ответы пользователя и автоматически рассчитывает
+    оптимальную сложность плана и тип соревнования.
+    """
+    try:
+        # Рассчитываем сложность плана на основе ответов
+        complexity = calculate_plan_complexity(
+            weekly_distance=wizard_data.weekly_distance,
+            comfortable_pace=wizard_data.comfortable_pace,
+            target_distance=wizard_data.target_distance,
+            competition_date=wizard_data.competition_date,
+            has_specific_goal=wizard_data.has_specific_goal
+        )
+        
+        # Определяем тип соревнования
+        competition_type = determine_competition_type(wizard_data.target_distance)
+        
+        # Обновляем данные пользователя с информацией о соревновании и предпочтительными днями
+        current_user.competition_date = wizard_data.competition_date
+        current_user.competition_type = competition_type
+        current_user.preferred_workout_days = json.dumps(wizard_data.preferred_workout_days)
+        current_user.updated_at = datetime.utcnow()
+        db.commit()
+        
+        # Создаем план тренировок
+        plan_data = TrainingPlanCreate(
+            uin=current_user.uin,
+            complexity=complexity,
+            competition_date=wizard_data.competition_date,
+            competition_type=competition_type,
+            competition_distance=None  # Для бега дистанция не нужна
+        )
+        
+        generator = PlanGenerator(db)
+        plan = generator.create_training_plan(plan_data)
+        
+        return PlanWizardResponse(
+            complexity=complexity,
+            competition_type=competition_type,
+            competition_date=wizard_data.competition_date,
+            plan_id=plan.id
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка создания плана через мастер: {str(e)}"
+        )
+
+@router.post("/plans/wizard/workout-count", response_model=WeeklyWorkoutCountResponse, status_code=status.HTTP_200_OK)
+async def get_weekly_workout_count(
+    workout_count_data: WeeklyWorkoutCountRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Получить максимальное количество тренировок в неделю на основе данных мастера.
+    
+    Этот endpoint используется для расчета количества тренировок перед финальным
+    шагом выбора предпочтительных дней в мастере планов.
+    """
+    try:
+        # Рассчитываем сложность плана на основе ответов
+        complexity = calculate_plan_complexity(
+            weekly_distance=workout_count_data.weekly_distance,
+            comfortable_pace=workout_count_data.comfortable_pace,
+            target_distance=workout_count_data.target_distance,
+            competition_date=workout_count_data.competition_date,
+            has_specific_goal=workout_count_data.has_specific_goal
+        )
+        
+        # Определяем тип соревнования
+        competition_type = determine_competition_type(workout_count_data.target_distance)
+        
+        # Получаем виды спорта для этого типа соревнования
+        from database import CompetitionType, SportType
+        training_tables = TrainingTables()
+        sport_types = training_tables.get_sport_types_for_competition(competition_type)
+        
+        # Рассчитываем максимальное количество тренировок в неделю
+        if len(sport_types) == 1:
+            # Для одного вида спорта
+            max_weekly_workouts = TrainingTables.get_weekly_frequency(sport_types[0], complexity)
+        else:
+            # Для триатлона - суммируем частоту для всех видов спорта
+            # (для триатлона частота делится на 2 для каждого вида)
+            max_weekly_workouts = 0
+            for sport_type in sport_types:
+                frequency = TrainingTables.get_weekly_frequency(sport_type, complexity)
+                frequency = max(2, frequency // 2)  # Меньше тренировок каждого вида для триатлона
+                max_weekly_workouts += frequency
+        
+        return WeeklyWorkoutCountResponse(
+            max_weekly_workouts=max_weekly_workouts,
+            complexity=complexity,
+            competition_type=competition_type
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка расчета количества тренировок: {str(e)}"
+        )
+
 @router.put("/plans/{uin}/workouts/update-date", status_code=status.HTTP_200_OK)
 async def update_workout_date(
     uin: str,
@@ -147,30 +264,56 @@ async def health_check():
 # Дополнительные эндпоинты для удобства
 
 @router.get("/competition-types")
-async def get_competition_types():
+async def get_competition_types(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
-    Получить список доступных типов соревнований.
+    Получить список доступных типов соревнований на основе тарифа пользователя.
     """
-    from database import CompetitionType
+    from database import CompetitionType, Tariff
     
-    return {
-        "running": [
+    # Определяем доступные виды спорта на основе тарифа пользователя
+    allow_running = True  # По умолчанию бег всегда доступен
+    allow_cycling = False
+    allow_swimming = False
+    allow_triathlon = False
+    
+    if current_user.tariff_id:
+        tariff = db.query(Tariff).filter(Tariff.id == current_user.tariff_id).first()
+        if tariff:
+            allow_running = bool(getattr(tariff, 'allow_running', 1))
+            allow_cycling = bool(getattr(tariff, 'allow_cycling', 0))
+            allow_swimming = bool(getattr(tariff, 'allow_swimming', 0))
+            allow_triathlon = bool(getattr(tariff, 'allow_triathlon', 0))
+    
+    result = {}
+    
+    if allow_running:
+        result["running"] = [
             {"value": CompetitionType.RUN_10K.value, "label": "10 километров"},
             {"value": CompetitionType.RUN_HALF_MARATHON.value, "label": "Полумарафон"},
             {"value": CompetitionType.RUN_MARATHON.value, "label": "Марафон"}
-        ],
-        "cycling": [
+        ]
+    
+    if allow_cycling:
+        result["cycling"] = [
             {"value": CompetitionType.CYCLING.value, "label": "Велосипед (указать дистанцию в км)"}
-        ],
-        "swimming": [
+        ]
+    
+    if allow_swimming:
+        result["swimming"] = [
             {"value": CompetitionType.SWIMMING.value, "label": "Плавание (указать дистанцию в метрах)"}
-        ],
-        "triathlon": [
+        ]
+    
+    if allow_triathlon:
+        result["triathlon"] = [
             {"value": CompetitionType.TRIATHLON_SPRINT.value, "label": "Спринт"},
             {"value": CompetitionType.TRIATHLON_OLYMPIC.value, "label": "Олимпийская дистанция"},
             {"value": CompetitionType.TRIATHLON_IRONMAN.value, "label": "Железная дистанция"}
         ]
-    }
+    
+    return result
 
 @router.get("/sport-types")
 async def get_sport_types():

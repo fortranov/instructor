@@ -3,21 +3,26 @@
 Сервис для создания персонализированных планов тренировок
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from database import create_tables, engine
+from database import create_tables, ensure_database_compatibility, engine
 from api_routes import router
 from api_completion import completion_router
 from api_workouts import workouts_router
 from api_statistics import statistics_router
+from api_admin import router as admin_router
+from api_user_tariffs import router as user_tariffs_router
+import os
 
 # Создание таблиц при запуске приложения
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    create_tables()
+    ensure_database_compatibility()  # Сначала проверяем и мигрируем существующую БД
+    create_tables()                  # Затем создаем таблицы если их нет
+    
     yield
     # Shutdown
     engine.dispose()
@@ -74,6 +79,8 @@ app.include_router(router, prefix="/api/v1")
 app.include_router(completion_router, prefix="/api/v1")
 app.include_router(workouts_router, prefix="/api/v1")
 app.include_router(statistics_router, prefix="/api/v1")
+app.include_router(admin_router)
+app.include_router(user_tariffs_router)
 
 # Корневой эндпоинт
 @app.get("/")
@@ -88,6 +95,7 @@ async def root():
         "docs": "/docs",
         "health": "/api/v1/health"
     }
+
 
 # Обработчик ошибок
 @app.exception_handler(Exception)

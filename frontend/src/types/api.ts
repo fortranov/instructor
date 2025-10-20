@@ -134,3 +134,182 @@ export interface WorkoutCompletionMarkResponse {
   date: string;
   completed_at: string;
 }
+
+export interface PlanWizardRequest {
+  weekly_distance: string;
+  comfortable_pace: string;
+  target_distance: string;
+  competition_date: string;
+  has_specific_goal: boolean;
+  preferred_workout_days: number[];
+}
+
+export interface PlanWizardResponse {
+  complexity: number;
+  competition_type: CompetitionType;
+  competition_date: string;
+  plan_id: number;
+}
+
+// Схемы для тарифов пользователей
+export interface UserTariffResponse {
+  tariff_type: string | null;
+  tariff_name: string | null;
+  test_period_days_remaining: number | null;
+  test_period_end_date: string | null;
+}
+
+export interface TariffPurchaseRequest {
+  tariff_type: string;
+  months: number;
+}
+
+export interface TariffPriceResponse {
+  base_price: number;
+  months: number;
+  discount_percent: number;
+  final_price: number;
+  total_savings: number;
+}
+
+// Схемы для настроек приложения
+export interface AppSettingResponse {
+  id: number;
+  key: string;
+  value: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppSettingUpdate {
+  key: string;
+  value: string;
+  description?: string;
+}
+
+export interface WeeklyWorkoutCountRequest {
+  weekly_distance: string;
+  comfortable_pace: string;
+  target_distance: string;
+  competition_date: string;
+  has_specific_goal: boolean;
+}
+
+export interface WeeklyWorkoutCountResponse {
+  max_weekly_workouts: number;
+  complexity: number;
+  competition_type: CompetitionType;
+}
+
+// Типы для администрирования
+
+export enum TariffType {
+  TEST = "test",
+  TRIAL = "trial", 
+  PRO = "pro"
+}
+
+export interface AdminUser {
+  id: number;
+  uin: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  is_active: boolean;
+  tariff_type?: TariffType;
+  tariff_name?: string;
+  created_at: string;
+}
+
+export interface UserTariffUpdate {
+  user_id: number;
+  tariff_type: TariffType;
+}
+
+export interface Tariff {
+  id: number;
+  name: string;
+  type: TariffType;
+  view_full_plan: boolean;
+  view_two_weeks: boolean;
+  allow_running: boolean;
+  allow_cycling: boolean;
+  allow_swimming: boolean;
+  allow_triathlon: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TariffUpdate {
+  view_full_plan: boolean;
+  view_two_weeks: boolean;
+  allow_running: boolean;
+  allow_cycling: boolean;
+  allow_swimming: boolean;
+  allow_triathlon: boolean;
+}
+
+export interface TariffsUpdateRequest {
+  test: TariffUpdate;
+  trial: TariffUpdate;
+  pro: TariffUpdate;
+}
+
+export interface WorkoutCoefficients {
+  id: number;
+  // Коэффициенты для недельного километража
+  weekly_distance_beginner: number;
+  weekly_distance_5_10: number;
+  weekly_distance_10_30: number;
+  weekly_distance_30_50: number;
+  weekly_distance_50_plus: number;
+  
+  // Коэффициенты для комфортного темпа
+  pace_8_plus: number;
+  pace_7_8: number;
+  pace_6_7: number;
+  pace_5_6: number;
+  pace_4_5: number;
+  pace_4_minus: number;
+  
+  // Коэффициенты для целевой дистанции
+  target_distance_5k: number;
+  target_distance_10k: number;
+  target_distance_21k: number;
+  target_distance_42k: number;
+  
+  // Коэффициенты для времени подготовки
+  time_preparation_base: number;
+  time_preparation_weeks_optimal: number;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkoutCoefficientsUpdate {
+  // Коэффициенты для недельного километража
+  weekly_distance_beginner: number;
+  weekly_distance_5_10: number;
+  weekly_distance_10_30: number;
+  weekly_distance_30_50: number;
+  weekly_distance_50_plus: number;
+  
+  // Коэффициенты для комфортного темпа
+  pace_8_plus: number;
+  pace_7_8: number;
+  pace_6_7: number;
+  pace_5_6: number;
+  pace_4_5: number;
+  pace_4_minus: number;
+  
+  // Коэффициенты для целевой дистанции
+  target_distance_5k: number;
+  target_distance_10k: number;
+  target_distance_21k: number;
+  target_distance_42k: number;
+  
+  // Коэффициенты для времени подготовки
+  time_preparation_base: number;
+  time_preparation_weeks_optimal: number;
+}
