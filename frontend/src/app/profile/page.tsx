@@ -502,29 +502,6 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {existingPlan && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                      <div className="text-sm space-y-1">
-                        <div><strong>Сложность:</strong> {existingPlan.complexity}</div>
-                        <div><strong>Дата соревнования:</strong> {new Date(existingPlan.competition_date).toLocaleDateString('ru-RU')}</div>
-                        <div><strong>Тип соревнования:</strong> {
-                          competitionTypes ?
-                            [
-                              ...(competitionTypes.running || []),
-                              ...(competitionTypes.cycling || []),
-                              ...(competitionTypes.swimming || []),
-                              ...(competitionTypes.triathlon || [])
-                            ]
-                              .find(type => type.value === existingPlan.competition_type)?.label || existingPlan.competition_type
-                            : existingPlan.competition_type
-                        }</div>
-                        {existingPlan.competition_distance && (
-                          <div><strong>Дистанция:</strong> {existingPlan.competition_distance} {existingPlan.competition_type === 'cycling' ? 'км' : 'м'}</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
                   <div>
                     <span className="text-sm font-medium text-gray-700">Текущий тариф: </span>
                     <span className="text-sm text-gray-900 font-semibold">
@@ -582,7 +559,27 @@ export default function ProfilePage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   {existingPlan ? 'Управление планом тренировок' : 'Создание плана тренировок'}
                 </h3>
-                
+                {existingPlan && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <div className="text-sm space-y-1">
+                        <div><strong>Дата соревнования:</strong> {new Date(existingPlan.competition_date).toLocaleDateString('ru-RU')}</div>
+                        <div><strong>Тип соревнования:</strong> {
+                          competitionTypes ?
+                            [
+                              ...(competitionTypes.running || []),
+                              ...(competitionTypes.cycling || []),
+                              ...(competitionTypes.swimming || []),
+                              ...(competitionTypes.triathlon || [])
+                            ]
+                              .find(type => type.value === existingPlan.competition_type)?.label || existingPlan.competition_type
+                            : existingPlan.competition_type
+                        }</div>
+                        {existingPlan.competition_distance && (
+                          <div><strong>Дистанция:</strong> {existingPlan.competition_distance} {existingPlan.competition_type === 'cycling' ? 'км' : 'м'}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 {/* Кнопка мастера планов */}
                 <div className="mb-6">
                 <Button
