@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(docker-compose logs:*)"
+      "Bash(docker-compose logs:*)",
+      "Bash(sqlite3:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

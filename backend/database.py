@@ -264,18 +264,18 @@ def ensure_database_compatibility():
                     alter_sql = f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"
                     print(f"Executing: {alter_sql}")
                     cursor.execute(alter_sql)
-                    print(f"✅ Added column: {col_name}")
+                    print(f"[OK] Added column: {col_name}")
                 except sqlite3.OperationalError as e:
                     if "duplicate column name" in str(e).lower():
-                        print(f"⚠️  Column {col_name} already exists")
+                        print(f"[WARN] Column {col_name} already exists")
                     else:
-                        print(f"❌ Error adding column {col_name}: {e}")
+                        print(f"[ERROR] Error adding column {col_name}: {e}")
                         raise
             
             conn.commit()
-            print("✅ Database schema updated successfully")
+            print("[OK] Database schema updated successfully")
         else:
-            print("✅ All required columns are present")
+            print("[OK] All required columns are present")
         
         # Проверяем финальную схему
         cursor.execute("PRAGMA table_info(users);")
@@ -286,13 +286,83 @@ def ensure_database_compatibility():
         for col_name in required_columns.keys():
             if col_name not in final_column_names:
                 raise Exception(f"Column {col_name} is still missing after migration!")
-        
+
+        # Проверяем и обновляем таблицу tariffs
+        print("\nChecking tariffs table...")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tariffs';")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(tariffs);")
+            tariff_columns = cursor.fetchall()
+            tariff_column_names = [col[1] for col in tariff_columns]
+
+            print(f"Current columns in tariffs table: {tariff_column_names}")
+
+            # Колонки для видов спорта
+            sport_columns = {
+                'allow_running': 'INTEGER DEFAULT 1',
+                'allow_cycling': 'INTEGER DEFAULT 0',
+                'allow_swimming': 'INTEGER DEFAULT 0',
+                'allow_triathlon': 'INTEGER DEFAULT 0'
+            }
+
+            # Находим отсутствующие колонки
+            missing_tariff_columns = []
+            for col_name, col_def in sport_columns.items():
+                if col_name not in tariff_column_names:
+                    missing_tariff_columns.append((col_name, col_def))
+
+            if missing_tariff_columns:
+                print(f"Found missing columns in tariffs: {[col[0] for col in missing_tariff_columns]}")
+
+                # Добавляем отсутствующие колонки
+                for col_name, col_def in missing_tariff_columns:
+                    try:
+                        alter_sql = f"ALTER TABLE tariffs ADD COLUMN {col_name} {col_def};"
+                        print(f"Executing: {alter_sql}")
+                        cursor.execute(alter_sql)
+                        print(f"[OK] Added column: {col_name}")
+                    except sqlite3.OperationalError as e:
+                        if "duplicate column name" in str(e).lower():
+                            print(f"[WARN] Column {col_name} already exists")
+                        else:
+                            print(f"[ERROR] Error adding column {col_name}: {e}")
+                            raise
+
+                conn.commit()
+                print("[OK] Tariffs table schema updated successfully")
+
+                # Обновляем значения по умолчанию для существующих тарифов
+                print("Updating default values for existing tariffs...")
+                try:
+                    cursor.execute("""
+                        UPDATE tariffs
+                        SET allow_running = 1
+                        WHERE allow_running IS NULL OR allow_running = 0
+                    """)
+
+                    # Для PRO тарифа включаем все виды спорта
+                    cursor.execute("""
+                        UPDATE tariffs
+                        SET allow_cycling = 1,
+                            allow_swimming = 1,
+                            allow_triathlon = 1
+                        WHERE type = 'PRO' OR type = 'pro'
+                    """)
+                    conn.commit()
+                    print("[OK] Default values updated for existing tariffs")
+                except Exception as update_error:
+                    print(f"[WARN] Error updating default values: {update_error}")
+            else:
+                print("[OK] All required columns are present in tariffs table")
+        else:
+            print("[WARN] Tariffs table does not exist yet, will be created by SQLAlchemy")
+
         conn.close()
-        
-        print("✅ Database compatibility check completed")
-        
+
+        print("[OK] Database compatibility check completed")
+
     except Exception as e:
-        print(f"❌ Error ensuring database compatibility: {e}")
+        print(f"[ERROR] Error ensuring database compatibility: {e}")
         import traceback
         traceback.print_exc()
         # Не поднимаем исключение, чтобы не прерывать запуск приложения
