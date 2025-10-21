@@ -508,8 +508,13 @@ export default function ProfilePage() {
                         <div><strong>Сложность:</strong> {existingPlan.complexity}</div>
                         <div><strong>Дата соревнования:</strong> {new Date(existingPlan.competition_date).toLocaleDateString('ru-RU')}</div>
                         <div><strong>Тип соревнования:</strong> {
-                          competitionTypes ? 
-                            [...competitionTypes.running, ...competitionTypes.cycling, ...competitionTypes.swimming, ...competitionTypes.triathlon]
+                          competitionTypes ?
+                            [
+                              ...(competitionTypes.running || []),
+                              ...(competitionTypes.cycling || []),
+                              ...(competitionTypes.swimming || []),
+                              ...(competitionTypes.triathlon || [])
+                            ]
                               .find(type => type.value === existingPlan.competition_type)?.label || existingPlan.competition_type
                             : existingPlan.competition_type
                         }</div>
@@ -658,34 +663,42 @@ export default function ProfilePage() {
                           >
                             {competitionTypes && (
                               <>
-                                <optgroup label="Бег">
-                                  {competitionTypes.running.map(type => (
-                                    <option key={type.value} value={type.value}>
-                                      {type.label}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Велосипед">
-                                  {competitionTypes.cycling.map(type => (
-                                    <option key={type.value} value={type.value}>
-                                      {type.label}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Плавание">
-                                  {competitionTypes.swimming.map(type => (
-                                    <option key={type.value} value={type.value}>
-                                      {type.label}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Триатлон">
-                                  {competitionTypes.triathlon.map(type => (
-                                    <option key={type.value} value={type.value}>
-                                      {type.label}
-                                    </option>
-                                  ))}
-                                </optgroup>
+                                {competitionTypes.running && competitionTypes.running.length > 0 && (
+                                  <optgroup label="Бег">
+                                    {competitionTypes.running.map(type => (
+                                      <option key={type.value} value={type.value}>
+                                        {type.label}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {competitionTypes.cycling && competitionTypes.cycling.length > 0 && (
+                                  <optgroup label="Велосипед">
+                                    {competitionTypes.cycling.map(type => (
+                                      <option key={type.value} value={type.value}>
+                                        {type.label}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {competitionTypes.swimming && competitionTypes.swimming.length > 0 && (
+                                  <optgroup label="Плавание">
+                                    {competitionTypes.swimming.map(type => (
+                                      <option key={type.value} value={type.value}>
+                                        {type.label}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {competitionTypes.triathlon && competitionTypes.triathlon.length > 0 && (
+                                  <optgroup label="Триатлон">
+                                    {competitionTypes.triathlon.map(type => (
+                                      <option key={type.value} value={type.value}>
+                                        {type.label}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
                               </>
                             )}
                           </select>

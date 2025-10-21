@@ -108,10 +108,10 @@ export interface WorkoutTypeOption {
 }
 
 export interface CompetitionTypesResponse {
-  running: CompetitionTypeOption[];
-  cycling: CompetitionTypeOption[];
-  swimming: CompetitionTypeOption[];
-  triathlon: CompetitionTypeOption[];
+  running?: CompetitionTypeOption[];
+  cycling?: CompetitionTypeOption[];
+  swimming?: CompetitionTypeOption[];
+  triathlon?: CompetitionTypeOption[];
 }
 
 export interface ApiError {
