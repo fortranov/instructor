@@ -25,29 +25,45 @@ async def get_all_users(
     admin_user: User = Depends(get_current_admin_user)
 ):
     """Получить список всех пользователей"""
-    users = db.query(User).all()
-    
-    result = []
-    for user in users:
-        tariff_type = None
-        tariff_name = None
-        if user.tariff:
-            tariff_type = user.tariff.type
-            tariff_name = user.tariff.name
-        
-        result.append(AdminUserResponse(
-            id=user.id,
-            uin=user.uin,
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            is_active=bool(user.is_active),
-            tariff_type=tariff_type,
-            tariff_name=tariff_name,
-            created_at=user.created_at
-        ))
-    
-    return result
+    try:
+        users = db.query(User).all()
+
+        result = []
+        for user in users:
+            tariff_type = None
+            tariff_name = None
+
+            # Безопасное получение тарифа
+            try:
+                if user.tariff_id:
+                    tariff = db.query(Tariff).filter(Tariff.id == user.tariff_id).first()
+                    if tariff:
+                        tariff_type = tariff.type
+                        tariff_name = tariff.name
+            except Exception as tariff_error:
+                print(f"Ошибка получения тарифа для пользователя {user.email}: {tariff_error}")
+
+            result.append(AdminUserResponse(
+                id=user.id,
+                uin=user.uin,
+                email=user.email,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                is_active=bool(user.is_active),
+                tariff_type=tariff_type,
+                tariff_name=tariff_name,
+                created_at=user.created_at
+            ))
+
+        return result
+    except Exception as e:
+        print(f"Ошибка при получении списка пользователей: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении списка пользователей: {str(e)}"
+        )
 
 @router.put("/users/tariff")
 async def update_user_tariff(
