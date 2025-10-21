@@ -338,18 +338,18 @@ class PlanGenerator:
         user = self.db.query(User).filter(User.uin == uin).first()
         if not user:
             return []
-        
+
         plan = self.db.query(TrainingPlan).filter(TrainingPlan.user_id == user.id).first()
         if not plan:
             return []
-        
+
         # Получить тренировки
         workouts = self.db.query(Workout).filter(
             Workout.plan_id == plan.id,
             Workout.date >= start_date,
             Workout.date <= end_date
         ).order_by(Workout.date).all()
-        
+
         # Получить все отметки выполнения для этих тренировок
         workout_ids = [w.id for w in workouts]
         completion_marks = {}
@@ -359,14 +359,10 @@ class PlanGenerator:
                 WorkoutCompletionMark.user_id == user.id
             ).all()
             completion_marks = {mark.workout_id: True for mark in marks}
-        
-        # Фильтровать тренировки по предпочтительным дням пользователя
-        # Это нужно для старых планов, которые могли быть созданы с другими предпочтениями
-        filtered_workouts = self._filter_workouts_by_preferred_days_from_db(workouts, user.id)
-        
+
         # Создать список словарей с информацией о выполнении
         workout_responses = []
-        for workout in filtered_workouts:
+        for workout in workouts:
             workout_responses.append({
                 'id': workout.id,
                 'date': workout.date,
@@ -375,7 +371,7 @@ class PlanGenerator:
                 'workout_type': workout.workout_type,
                 'is_completed': completion_marks.get(workout.id, False)
             })
-        
+
         return workout_responses
     
     def delete_user_plan(self, uin: str) -> bool:
