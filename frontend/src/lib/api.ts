@@ -52,6 +52,11 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
+    // Всегда проверяем localStorage перед запросом (на случай SSR)
+    if (typeof window !== 'undefined' && !this.token) {
+      this.token = localStorage.getItem('token');
+    }
+
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
@@ -163,10 +168,18 @@ class ApiClient {
   }
 
   getToken(): string | null {
+    // Всегда проверяем localStorage (на случай SSR)
+    if (typeof window !== 'undefined' && !this.token) {
+      this.token = localStorage.getItem('token');
+    }
     return this.token;
   }
 
   isAuthenticated(): boolean {
+    // Всегда проверяем localStorage (на случай SSR)
+    if (typeof window !== 'undefined' && !this.token) {
+      this.token = localStorage.getItem('token');
+    }
     return !!this.token;
   }
 
