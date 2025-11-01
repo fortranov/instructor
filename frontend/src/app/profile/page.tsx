@@ -312,6 +312,7 @@ export default function ProfilePage() {
         target_distance: wizardData.targetDistance,
         competition_date: wizardData.competitionDate,
         has_specific_goal: wizardData.hasSpecificGoal,
+        has_strength_training: wizardData.hasStrengthTraining,
         preferred_workout_days: wizardData.preferredWorkoutDays,
       };
 

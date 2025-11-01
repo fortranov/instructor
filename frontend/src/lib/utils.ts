@@ -61,6 +61,8 @@ export const getSportIcon = (sportType: SportType): string => {
       return '🚴';
     case SportType.SWIMMING:
       return '🏊';
+    case SportType.STRENGTH:
+      return '🏋️';
     default:
       return '🏃';
   }
@@ -74,6 +76,8 @@ export const getSportColor = (sportType: SportType): string => {
       return 'bg-blue-500';
     case SportType.SWIMMING:
       return 'bg-cyan-500';
+    case SportType.STRENGTH:
+      return 'bg-purple-500';
     default:
       return 'bg-gray-500';
   }
@@ -87,6 +91,8 @@ export const getSportLabel = (sportType: SportType): string => {
       return 'Велосипед';
     case SportType.SWIMMING:
       return 'Плавание';
+    case SportType.STRENGTH:
+      return 'Силовая';
     default:
       return sportType;
   }

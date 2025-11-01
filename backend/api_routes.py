@@ -156,6 +156,7 @@ async def create_plan_with_wizard(
         current_user.competition_date = wizard_data.competition_date
         current_user.competition_type = competition_type
         current_user.preferred_workout_days = json.dumps(wizard_data.preferred_workout_days)
+        current_user.has_strength_training = 1 if wizard_data.has_strength_training else 0
         current_user.updated_at = datetime.utcnow()
         db.commit()
 

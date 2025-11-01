@@ -29,6 +29,8 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
         return 'езда на велосипеде';
       case SportType.SWIMMING:
         return 'плавание';
+      case SportType.STRENGTH:
+        return 'силовая тренировка';
       default:
         return 'активность';
     }
@@ -108,7 +110,24 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
     const stages: WorkoutStage[] = [];
     const totalDuration = workout.duration_minutes;
     const activityName = getActivityName(workout.sport_type);
-    
+
+    // Для силовых тренировок - особая структура
+    if (workout.sport_type === SportType.STRENGTH) {
+      stages.push({
+        duration: 10,
+        description: 'Разминка - легкое кардио и динамическая растяжка для подготовки мышц'
+      });
+      stages.push({
+        duration: 35,
+        description: 'Основная часть - упражнения с весами на все группы мышц (3-4 подхода по 8-12 повторений)'
+      });
+      stages.push({
+        duration: 5,
+        description: 'Заминка - растяжка для восстановления мышц'
+      });
+      return stages;
+    }
+
     // Разминка - всегда 5 минут
     stages.push({
       duration: 5,
@@ -117,7 +136,7 @@ export default function WorkoutModal({ workout, isOpen, onClose }: WorkoutModalP
 
     // Основная часть тренировки
     const mainDuration = totalDuration - 10; // вычитаем разминку и заминку
-    
+
     if (workout.workout_type === WorkoutType.ENDURANCE) {
       // Длительная тренировка - равномерный бег во второй зоне
       stages.push({

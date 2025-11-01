@@ -72,7 +72,8 @@ export interface WorkoutsByDateResponse {
 export enum SportType {
   RUNNING = "running",
   CYCLING = "cycling",
-  SWIMMING = "swimming"
+  SWIMMING = "swimming",
+  STRENGTH = "strength"
 }
 
 export enum WorkoutType {
@@ -142,6 +143,7 @@ export interface PlanWizardRequest {
   target_distance: string;
   competition_date: string;
   has_specific_goal: boolean;
+  has_strength_training?: boolean;
   preferred_workout_days: number[];
 }
 

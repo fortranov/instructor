@@ -15,6 +15,7 @@ export interface PlanWizardData {
   targetDistance: string;
   competitionDate: string;
   hasSpecificGoal: boolean;
+  hasStrengthTraining: boolean;
   preferredWorkoutDays: number[];
 }
 
@@ -68,6 +69,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
     targetDistance: '',
     competitionDate: '',
     hasSpecificGoal: true,
+    hasStrengthTraining: false,
     preferredWorkoutDays: [],
   });
   const [maxWeeklyWorkouts, setMaxWeeklyWorkouts] = useState<number | null>(null);
@@ -78,7 +80,8 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
 
   // Определяем, нужен ли шаг выбора вида спорта
   const needsSportSelection = availableSports.length > 1;
-  const totalSteps = needsSportSelection ? 6 : 5;
+  // Добавляем +1 шаг для вопроса о силовых тренировках
+  const totalSteps = needsSportSelection ? 7 : 6;
 
   // Загрузить типы соревнований при открытии модалки
   useEffect(() => {
@@ -170,6 +173,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
       competitionDate: '',
       hasSpecificGoal: true,
       preferredWorkoutDays: [],
+      hasStrengthTraining: false,
     });
     setMaxWeeklyWorkouts(null);
     setAvailableSports([]);
@@ -180,7 +184,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
   // Вспомогательная функция для определения типа текущего шага
   const getCurrentStepType = () => {
     if (needsSportSelection) {
-      // С выбором вида спорта: шаги 1-6
+      // С выбором вида спорта: шаги 1-7
       switch (currentStep) {
         case 1: return 'sport-selection';
         case 2: return 'weekly-distance';
@@ -198,10 +202,18 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
           if (sportType === 'running' || sportType === 'triathlon') {
             return 'target-distance';
           } else {
-            return 'competition-date';
+            return 'strength-question';
           }
         }
         case 5: {
+          const sportType = formData.sportType;
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'strength-question';
+          } else {
+            return 'competition-date';
+          }
+        }
+        case 6: {
           const sportType = formData.sportType;
           if (sportType === 'running' || sportType === 'triathlon') {
             return 'competition-date';
@@ -209,11 +221,11 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
             return 'workout-days';
           }
         }
-        case 6: return 'workout-days';
+        case 7: return 'workout-days';
         default: return 'unknown';
       }
     } else {
-      // Без выбора вида спорта: шаги 1-5
+      // Без выбора вида спорта: шаги 1-6
       const sportType = formData.sportType;
       switch (currentStep) {
         case 1: return 'weekly-distance';
@@ -228,17 +240,24 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
           if (sportType === 'running' || sportType === 'triathlon') {
             return 'target-distance';
           } else {
-            return 'competition-date';
+            return 'strength-question';
           }
         }
         case 4: {
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'strength-question';
+          } else {
+            return 'competition-date';
+          }
+        }
+        case 5: {
           if (sportType === 'running' || sportType === 'triathlon') {
             return 'competition-date';
           } else {
             return 'workout-days';
           }
         }
-        case 5: return 'workout-days';
+        case 6: return 'workout-days';
         default: return 'unknown';
       }
     }
@@ -262,6 +281,8 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
           return !isNaN(distance) && distance > 0;
         }
         return true;
+      case 'strength-question':
+        return true; // Всегда валиден, так как это вопрос да/нет
       case 'competition-date':
         return formData.hasSpecificGoal ? formData.competitionDate !== '' : true;
       case 'workout-days':
@@ -600,6 +621,78 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Шаг: Вопрос о силовых тренировках */}
+            {currentStepType === 'strength-question' && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-center mb-6">
+                  Есть ли возможность заниматься силовыми тренировками в зале?
+                </h3>
+                <div className="space-y-3">
+                  <label
+                    className={`
+                      flex items-center p-3 border rounded-lg cursor-pointer transition-all
+                      ${formData.hasStrengthTraining === true
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <input
+                      type="radio"
+                      name="hasStrengthTraining"
+                      value="true"
+                      checked={formData.hasStrengthTraining === true}
+                      onChange={() => setFormData({ ...formData, hasStrengthTraining: true })}
+                      className="sr-only"
+                    />
+                    <div className={`
+                      w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center
+                      ${formData.hasStrengthTraining === true
+                        ? 'border-blue-500'
+                        : 'border-gray-300'
+                      }
+                    `}>
+                      {formData.hasStrengthTraining === true && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">Да</span>
+                  </label>
+
+                  <label
+                    className={`
+                      flex items-center p-3 border rounded-lg cursor-pointer transition-all
+                      ${formData.hasStrengthTraining === false
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <input
+                      type="radio"
+                      name="hasStrengthTraining"
+                      value="false"
+                      checked={formData.hasStrengthTraining === false}
+                      onChange={() => setFormData({ ...formData, hasStrengthTraining: false })}
+                      className="sr-only"
+                    />
+                    <div className={`
+                      w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center
+                      ${formData.hasStrengthTraining === false
+                        ? 'border-blue-500'
+                        : 'border-gray-300'
+                      }
+                    `}>
+                      {formData.hasStrengthTraining === false && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">Нет</span>
+                  </label>
+                </div>
               </div>
             )}
 

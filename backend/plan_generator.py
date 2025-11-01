@@ -73,10 +73,14 @@ class PlanGenerator:
     def _generate_workouts(self, plan: TrainingPlan) -> List[Dict]:
         """Генерировать тренировки для плана"""
         workouts = []
-        
+
         # Получить предпочтительные дни пользователя
         user_preferred_days = self._get_user_preferred_days(plan.user_id)
-        
+
+        # Получить информацию о силовых тренировках
+        user = self.db.query(User).filter(User.id == plan.user_id).first()
+        has_strength_training = bool(user.has_strength_training) if user else False
+
         # Определить виды спорта для типа соревнования
         sport_types = self.training_tables.get_sport_types_for_competition(plan.competition_type)
         
@@ -116,9 +120,17 @@ class PlanGenerator:
             week_workouts = self._schedule_weekly_workouts(
                 weekly_workouts, current_date, plan.competition_date, user_preferred_days
             )
-            
+
             workouts.extend(week_workouts)
-            
+
+            # Добавить силовую тренировку в фазах base и build, если пользователь указал возможность
+            if has_strength_training and phase in ['base', 'build']:
+                strength_workout = self._add_strength_workout(
+                    current_date, plan.competition_date, user_preferred_days, week_workouts
+                )
+                if strength_workout:
+                    workouts.append(strength_workout)
+
             # Перейти к следующей неделе (к понедельнику)
             days_since_monday = current_date.weekday()  # 0 = понедельник, 6 = воскресенье
             current_date = current_date + timedelta(days=7 - days_since_monday)
@@ -399,7 +411,59 @@ class PlanGenerator:
                 attempts += 1
 
         return scheduled_workouts
-    
+
+    def _add_strength_workout(self, start_date: date, competition_date: date,
+                              user_preferred_days: List[int], week_workouts: List[Dict]) -> Dict:
+        """
+        Добавить силовую тренировку в неделю.
+
+        Args:
+            start_date: Начало недели
+            competition_date: Дата соревнования
+            user_preferred_days: Предпочтительные дни пользователя
+            week_workouts: Список уже запланированных тренировок на неделю
+
+        Returns:
+            Dict: Данные силовой тренировки или None
+        """
+        # Предпочтительные дни для тренировок
+        if user_preferred_days and len(user_preferred_days) > 0:
+            preferred_days = sorted(user_preferred_days)
+        else:
+            preferred_days = [0, 1, 2, 3, 4, 5, 6]
+
+        # Рассчитать понедельник текущей недели
+        days_since_monday = start_date.weekday()
+        monday_of_week = start_date - timedelta(days=days_since_monday)
+
+        # Найти дни, в которые уже запланированы тренировки
+        occupied_days = set()
+        for workout in week_workouts:
+            workout_date = workout['date']
+            if isinstance(workout_date, str):
+                workout_date = date.fromisoformat(workout_date)
+            occupied_days.add(workout_date.weekday())
+
+        # Найти первый свободный предпочтительный день
+        for preferred_day in preferred_days:
+            if preferred_day not in occupied_days:
+                workout_date = monday_of_week + timedelta(days=preferred_day)
+
+                # Если дата в прошлом, перенести на следующую неделю
+                if workout_date < start_date:
+                    workout_date = workout_date + timedelta(days=7)
+
+                # Проверить, что дата не превышает дату соревнования
+                if workout_date < competition_date:
+                    return {
+                        'date': workout_date,
+                        'sport_type': SportType.STRENGTH,
+                        'duration_minutes': 50,  # Фиксированная длительность 50 минут
+                        'workout_type': WorkoutType.RECOVERY  # Используем RECOVERY для силовых
+                    }
+
+        return None
+
     def get_plan_by_uin(self, uin: str) -> TrainingPlan:
         """Получить план тренировок пользователя"""
         user = self.db.query(User).filter(User.uin == uin).first()
