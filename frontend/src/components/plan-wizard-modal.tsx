@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import apiClient from '@/lib/api';
+import { CompetitionTypesResponse } from '@/types/api';
 
 export interface PlanWizardData {
+  sportType?: string;
   weeklyDistance: string;
   comfortablePace: string;
   targetDistance: string;
@@ -24,12 +26,28 @@ interface PlanWizardModalProps {
   initialPreferredDays?: number[];
 }
 
-const WEEKLY_DISTANCE_OPTIONS = [
+const WEEKLY_DISTANCE_OPTIONS_RUNNING = [
   { value: 'beginner', label: 'Только начинаю бегать' },
   { value: '5-10', label: '5-10 км' },
   { value: '10-30', label: '10-30 км' },
   { value: '30-50', label: '30-50 км' },
   { value: '50+', label: 'Больше 50 км' },
+];
+
+const WEEKLY_DISTANCE_OPTIONS_SWIMMING = [
+  { value: 'beginner', label: 'Только начинаю' },
+  { value: '50-500', label: '50-500 метров' },
+  { value: '500-1000', label: '500-1000 метров' },
+  { value: '1000-3000', label: '1000-3000 метров' },
+  { value: '3000+', label: 'Более 3000 метров' },
+];
+
+const WEEKLY_DISTANCE_OPTIONS_CYCLING = [
+  { value: 'beginner', label: 'Только начинаю' },
+  { value: '1-10', label: '1-10 км' },
+  { value: '10-50', label: '10-50 км' },
+  { value: '50-200', label: '50-200 км' },
+  { value: '200+', label: 'Более 200 км' },
 ];
 
 const PACE_OPTIONS = [
@@ -41,16 +59,10 @@ const PACE_OPTIONS = [
   { value: '4-', label: 'Быстрее 4 мин/км' },
 ];
 
-const TARGET_DISTANCE_OPTIONS = [
-  { value: '5k', label: '5 км' },
-  { value: '10k', label: '10 км' },
-  { value: '21k', label: '21 км (полумарафон)' },
-  { value: '42k', label: '42 км (марафон)' },
-];
-
-export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = false, initialPreferredDays = [0, 1, 2, 3, 4, 5, 6] }: PlanWizardModalProps) {
+export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = false }: PlanWizardModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PlanWizardData>({
+    sportType: undefined,
     weeklyDistance: '',
     comfortablePace: '',
     targetDistance: '',
@@ -60,13 +72,54 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
   });
   const [maxWeeklyWorkouts, setMaxWeeklyWorkouts] = useState<number | null>(null);
   const [loadingWorkoutCount, setLoadingWorkoutCount] = useState(false);
+  const [availableSports, setAvailableSports] = useState<string[]>([]);
+  const [competitionTypes, setCompetitionTypes] = useState<CompetitionTypesResponse>({});
+  const [loadingCompetitionTypes, setLoadingCompetitionTypes] = useState(false);
 
-  const totalSteps = 5;
+  // Определяем, нужен ли шаг выбора вида спорта
+  const needsSportSelection = availableSports.length > 1;
+  const totalSteps = needsSportSelection ? 6 : 5;
+
+  // Загрузить типы соревнований при открытии модалки
+  useEffect(() => {
+    if (isOpen && competitionTypes && Object.keys(competitionTypes).length === 0) {
+      const loadCompetitionTypes = async () => {
+        setLoadingCompetitionTypes(true);
+        try {
+          const types = await apiClient.getCompetitionTypes();
+          setCompetitionTypes(types);
+
+          // Определяем доступные виды спорта
+          const sports: string[] = [];
+          if (types.running && types.running.length > 0) sports.push('running');
+          if (types.cycling && types.cycling.length > 0) sports.push('cycling');
+          if (types.swimming && types.swimming.length > 0) sports.push('swimming');
+          if (types.triathlon && types.triathlon.length > 0) sports.push('triathlon');
+
+          setAvailableSports(sports);
+
+          // Если только один вид спорта доступен, автоматически выбираем его
+          if (sports.length === 1) {
+            setFormData(prev => ({ ...prev, sportType: sports[0] }));
+          }
+        } catch (error) {
+          console.error('Ошибка загрузки типов соревнований:', error);
+        } finally {
+          setLoadingCompetitionTypes(false);
+        }
+      };
+
+      loadCompetitionTypes();
+    }
+  }, [isOpen, competitionTypes]);
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
-      // Если переходим на шаг 5 (выбор дней), сначала запрашиваем количество тренировок
-      if (currentStep === 4 && !maxWeeklyWorkouts) {
+      // Определяем, является ли следующий шаг выбором дней
+      const nextStepIsWorkoutDays = currentStep === totalSteps - 1;
+
+      // Если переходим на шаг выбора дней, сначала запрашиваем количество тренировок
+      if (nextStepIsWorkoutDays && !maxWeeklyWorkouts) {
         setLoadingWorkoutCount(true);
         try {
           const response = await apiClient.getWeeklyWorkoutCount({
@@ -110,6 +163,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
   const handleClose = () => {
     setCurrentStep(1);
     setFormData({
+      sportType: undefined,
       weeklyDistance: '',
       comfortablePace: '',
       targetDistance: '',
@@ -118,20 +172,93 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
       preferredWorkoutDays: [],
     });
     setMaxWeeklyWorkouts(null);
+    setAvailableSports([]);
+    setCompetitionTypes({});
     onClose();
   };
 
+  // Вспомогательная функция для определения типа текущего шага
+  const getCurrentStepType = () => {
+    if (needsSportSelection) {
+      // С выбором вида спорта: шаги 1-6
+      switch (currentStep) {
+        case 1: return 'sport-selection';
+        case 2: return 'weekly-distance';
+        case 3: {
+          // Шаг с темпом только для бега и триатлона
+          const sportType = formData.sportType;
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'pace';
+          } else {
+            return 'target-distance';
+          }
+        }
+        case 4: {
+          const sportType = formData.sportType;
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'target-distance';
+          } else {
+            return 'competition-date';
+          }
+        }
+        case 5: {
+          const sportType = formData.sportType;
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'competition-date';
+          } else {
+            return 'workout-days';
+          }
+        }
+        case 6: return 'workout-days';
+        default: return 'unknown';
+      }
+    } else {
+      // Без выбора вида спорта: шаги 1-5
+      const sportType = formData.sportType;
+      switch (currentStep) {
+        case 1: return 'weekly-distance';
+        case 2: {
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'pace';
+          } else {
+            return 'target-distance';
+          }
+        }
+        case 3: {
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'target-distance';
+          } else {
+            return 'competition-date';
+          }
+        }
+        case 4: {
+          if (sportType === 'running' || sportType === 'triathlon') {
+            return 'competition-date';
+          } else {
+            return 'workout-days';
+          }
+        }
+        case 5: return 'workout-days';
+        default: return 'unknown';
+      }
+    }
+  };
+
   const isStepValid = () => {
-    switch (currentStep) {
-      case 1:
+    const stepType = getCurrentStepType();
+
+    switch (stepType) {
+      case 'sport-selection':
+        return !!formData.sportType;
+      case 'weekly-distance':
         return formData.weeklyDistance !== '';
-      case 2:
+      case 'pace':
         return formData.comfortablePace !== '';
-      case 3:
+      case 'target-distance':
         return formData.targetDistance !== '';
-      case 4:
+      case 'competition-date':
         return formData.hasSpecificGoal ? formData.competitionDate !== '' : true;
-      case 5:
+      case 'workout-days':
         const selectedCount = formData.preferredWorkoutDays.length;
         const maxDays = maxWeeklyWorkouts || 7;
         return selectedCount >= 2 && selectedCount <= maxDays;
@@ -157,7 +284,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
     setFormData(prev => {
       const currentDays = prev.preferredWorkoutDays;
       const maxDays = maxWeeklyWorkouts || 7;
-      
+
       if (currentDays.includes(dayValue)) {
         // Убираем день
         return { ...prev, preferredWorkoutDays: currentDays.filter(day => day !== dayValue) };
@@ -171,7 +298,69 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
     });
   };
 
+  // Вспомогательные функции для получения опций и текстов
+  const getWeeklyDistanceOptions = () => {
+    const sportType = formData.sportType;
+    switch (sportType) {
+      case 'swimming':
+        return WEEKLY_DISTANCE_OPTIONS_SWIMMING;
+      case 'cycling':
+        return WEEKLY_DISTANCE_OPTIONS_CYCLING;
+      default:
+        return WEEKLY_DISTANCE_OPTIONS_RUNNING;
+    }
+  };
+
+  const getWeeklyDistanceQuestion = () => {
+    const sportType = formData.sportType;
+    switch (sportType) {
+      case 'swimming':
+        return 'Сколько Вы в среднем проплываете в неделю?';
+      case 'cycling':
+        return 'Сколько в среднем Вы проезжаете на велосипеде в неделю?';
+      case 'triathlon':
+        return 'Сколько Вы в среднем пробегаете в неделю на тренировках?';
+      default:
+        return 'Сколько Вы в среднем пробегаете в неделю на тренировках?';
+    }
+  };
+
+  const getTargetDistanceOptions = () => {
+    const sportType = formData.sportType;
+    if (sportType === 'running') {
+      return competitionTypes.running || [];
+    } else if (sportType === 'cycling') {
+      return competitionTypes.cycling || [];
+    } else if (sportType === 'swimming') {
+      return competitionTypes.swimming || [];
+    } else if (sportType === 'triathlon') {
+      return competitionTypes.triathlon || [];
+    }
+    return [];
+  };
+
+  const getTargetDistanceQuestion = () => {
+    return 'К какой дистанции Вы хотели бы подготовиться?';
+  };
+
+  const getSportTypeLabel = (sportType: string) => {
+    switch (sportType) {
+      case 'running':
+        return 'Бег';
+      case 'cycling':
+        return 'Велосипед';
+      case 'swimming':
+        return 'Плавание';
+      case 'triathlon':
+        return 'Триатлон';
+      default:
+        return sportType;
+    }
+  };
+
   if (!isOpen) return null;
+
+  const currentStepType = getCurrentStepType();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -203,14 +392,65 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
           </CardHeader>
 
           <CardContent className="pt-4">
-            {/* Шаг 1: Недельный километраж */}
-            {currentStep === 1 && (
+            {loadingCompetitionTypes ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600">Загрузка доступных видов спорта...</p>
+              </div>
+            ) : (
+              <>
+                {/* Шаг: Выбор вида спорта */}
+                {currentStepType === 'sport-selection' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-center mb-6">
+                      К какому виду спорта Вы готовитесь?
+                    </h3>
+                    <div className="space-y-3">
+                      {availableSports.map((sport) => (
+                    <label
+                      key={sport}
+                      className={`
+                        flex items-center p-3 border rounded-lg cursor-pointer transition-all
+                        ${formData.sportType === sport
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }
+                      `}
+                    >
+                      <input
+                        type="radio"
+                        name="sportType"
+                        value={sport}
+                        checked={formData.sportType === sport}
+                        onChange={(e) => setFormData({ ...formData, sportType: e.target.value, weeklyDistance: '', comfortablePace: '', targetDistance: '' })}
+                        className="sr-only"
+                      />
+                      <div className={`
+                        w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center
+                        ${formData.sportType === sport
+                          ? 'border-blue-500'
+                          : 'border-gray-300'
+                        }
+                      `}>
+                        {formData.sportType === sport && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">{getSportTypeLabel(sport)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Шаг: Недельный объем */}
+            {currentStepType === 'weekly-distance' && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-center mb-6">
-                  Сколько Вы в среднем пробегаете в неделю на тренировках?
+                  {getWeeklyDistanceQuestion()}
                 </h3>
                 <div className="space-y-3">
-                  {WEEKLY_DISTANCE_OPTIONS.map((option) => (
+                  {getWeeklyDistanceOptions().map((option) => (
                     <label
                       key={option.value}
                       className={`
@@ -247,8 +487,8 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
               </div>
             )}
 
-            {/* Шаг 2: Комфортный темп */}
-            {currentStep === 2 && (
+            {/* Шаг: Комфортный темп (только для бега и триатлона) */}
+            {currentStepType === 'pace' && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-center mb-6">
                   Какой комфортный темп бега для Вас на длительной тренировке?
@@ -291,14 +531,14 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
               </div>
             )}
 
-            {/* Шаг 3: Целевая дистанция */}
-            {currentStep === 3 && (
+            {/* Шаг: Целевая дистанция */}
+            {currentStepType === 'target-distance' && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-center mb-6">
-                  К какой дистанции Вы хотели бы подготовиться по бегу?
+                  {getTargetDistanceQuestion()}
                 </h3>
                 <div className="space-y-3">
-                  {TARGET_DISTANCE_OPTIONS.map((option) => (
+                  {getTargetDistanceOptions().map((option) => (
                     <label
                       key={option.value}
                       className={`
@@ -335,8 +575,8 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
               </div>
             )}
 
-            {/* Шаг 4: Дата соревнования */}
-            {currentStep === 4 && (
+            {/* Шаг: Дата соревнования */}
+            {currentStepType === 'competition-date' && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-center mb-6">
                   Какая дата ключевого соревнования?
@@ -386,8 +626,8 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
               </div>
             )}
 
-            {/* Шаг 5: Предпочтительные дни для тренировок */}
-            {currentStep === 5 && (
+            {/* Шаг: Предпочтительные дни для тренировок */}
+            {currentStepType === 'workout-days' && (
               <div className="space-y-4">
                 {loadingWorkoutCount ? (
                   <div className="flex flex-col items-center justify-center py-8">
@@ -487,6 +727,8 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
                 )}
               </div>
             )}
+            </>
+            )}
 
             {/* Кнопки навигации */}
             <div className="flex justify-between mt-8 pt-4 border-t">
@@ -506,7 +748,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
                   disabled={!canProceed || loading || loadingWorkoutCount}
                   className="flex items-center"
                 >
-                  {loadingWorkoutCount && currentStep === 4 ? 'Загрузка...' : 'Далее'}
+                  {loadingWorkoutCount ? 'Загрузка...' : 'Далее'}
                   {!loadingWorkoutCount && <ChevronRight className="w-4 h-4 ml-1" />}
                 </Button>
               ) : (

@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 import random
 
-from database import User, TrainingPlan, Workout, CompetitionType, WorkoutCompletionMark
+from database import User, TrainingPlan, Workout, CompetitionType, WorkoutCompletionMark, WorkoutType, SportType
 from training_tables import TrainingTables
 from schemas import TrainingPlanCreate
 
