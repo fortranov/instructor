@@ -262,67 +262,142 @@ class PlanGenerator:
         except (json.JSONDecodeError, TypeError):
             return [0, 1, 2, 3, 4, 5, 6]  # Fallback к значению по умолчанию (все дни)
     
-    def _schedule_weekly_workouts(self, weekly_workouts: List, start_date: date, 
+    def _schedule_weekly_workouts(self, weekly_workouts: List, start_date: date,
                                 competition_date: date, user_preferred_days: List[int] = None) -> List[Dict]:
-        """Распределить тренировки по дням недели"""
+        """
+        Распределить тренировки по дням недели с учетом типа тренировок и вида спорта.
+
+        Алгоритм:
+        1. Длительные тренировки (ENDURANCE) размещаются с конца недели (последние предпочтительные дни)
+        2. Остальные тренировки (RECOVERY и INTERVAL) размещаются с начала недели, чередуясь
+        3. В день не может быть более 2 тренировок одного вида спорта
+        """
         scheduled_workouts = []
-        
+
         # Предпочтительные дни для тренировок (понедельник = 0, воскресенье = 6)
-        if user_preferred_days is not None:
-            preferred_days = user_preferred_days
+        if user_preferred_days is not None and len(user_preferred_days) > 0:
+            preferred_days = sorted(user_preferred_days)  # Сортируем для корректного распределения
         else:
             preferred_days = [0, 1, 2, 3, 4, 5, 6]  # Дни недели по умолчанию (все дни)
-        
-        
-        # Перемешать тренировки для разнообразия
-        shuffled_workouts = weekly_workouts.copy()
-        random.shuffle(shuffled_workouts)
-        
-        # Распределить тренировки по дням более равномерно
-        for i, (sport_type, workout_type, duration) in enumerate(shuffled_workouts):
-            # Выбрать день недели из предпочтительных дней более равномерно
-            if len(preferred_days) > 0:
-                # Использовать более умное распределение для равномерного покрытия всех предпочтительных дней
-                # Если тренировок меньше чем предпочтительных дней, распределить равномерно
-                if len(shuffled_workouts) <= len(preferred_days):
-                    # Распределить тренировки равномерно по всем предпочтительным дням
-                    # Использовать равномерное распределение без пропусков
-                    day_index = i % len(preferred_days)
-                    preferred_day = preferred_days[day_index]
-                else:
-                    # Если тренировок больше чем предпочтительных дней,
-                    # распределить равномерно с повторением дней
-                    day_index = i % len(preferred_days)
-                    preferred_day = preferred_days[day_index]
+
+        # Разделить тренировки на длительные и остальные
+        endurance_workouts = []
+        other_workouts = []
+
+        for sport_type, workout_type, duration in weekly_workouts:
+            if workout_type == WorkoutType.ENDURANCE:
+                endurance_workouts.append((sport_type, workout_type, duration))
             else:
-                # Fallback к понедельнику если нет предпочтительных дней
-                preferred_day = 0
-            
-            
-            # Рассчитать смещение от начала недели (понедельник = 0)
-            # start_date может быть любым днем недели, нужно найти понедельник этой недели
-            days_since_monday = start_date.weekday()  # 0 = понедельник, 6 = воскресенье
-            monday_of_week = start_date - timedelta(days=days_since_monday)
-            
-            # Добавить смещение до выбранного дня недели
-            workout_date = monday_of_week + timedelta(days=preferred_day)
-            
-            # Если дата тренировки в прошлом, перенести на следующую неделю
-            if workout_date < start_date:
-                # Перенести тренировку на следующую неделю в тот же день
-                workout_date = workout_date + timedelta(days=7)
-            
-            # Убедиться, что дата не превышает дату соревнования
-            if workout_date >= competition_date:
-                continue
-            
+                other_workouts.append((sport_type, workout_type, duration))
+
+        # Сортировать длительные тренировки по длительности (самые длинные первыми)
+        endurance_workouts.sort(key=lambda x: x[2], reverse=True)
+
+        # Чередовать восстановительные и интервальные тренировки
+        recovery_workouts = [(s, w, d) for s, w, d in other_workouts if w == WorkoutType.RECOVERY]
+        interval_workouts = [(s, w, d) for s, w, d in other_workouts if w == WorkoutType.INTERVAL]
+
+        alternated_workouts = []
+        max_len = max(len(recovery_workouts), len(interval_workouts))
+        for i in range(max_len):
+            if i < len(recovery_workouts):
+                alternated_workouts.append(recovery_workouts[i])
+            if i < len(interval_workouts):
+                alternated_workouts.append(interval_workouts[i])
+
+        # Рассчитать понедельник текущей недели
+        days_since_monday = start_date.weekday()  # 0 = понедельник, 6 = воскресенье
+        monday_of_week = start_date - timedelta(days=days_since_monday)
+
+        # Словарь для отслеживания количества тренировок каждого вида спорта по дням
+        # Формат: {дата: {SportType: количество}}
+        daily_sport_counts = {}
+
+        def can_add_workout(workout_date: date, sport_type: SportType) -> bool:
+            """Проверить, можно ли добавить тренировку данного вида спорта в этот день"""
+            if workout_date not in daily_sport_counts:
+                return True
+            if sport_type not in daily_sport_counts[workout_date]:
+                return True
+            # Максимум 2 тренировки одного вида спорта в день
+            return daily_sport_counts[workout_date][sport_type] < 2
+
+        def add_workout(workout_date: date, sport_type: SportType, workout_type: WorkoutType, duration: int):
+            """Добавить тренировку и обновить счетчик"""
+            if workout_date not in daily_sport_counts:
+                daily_sport_counts[workout_date] = {}
+            if sport_type not in daily_sport_counts[workout_date]:
+                daily_sport_counts[workout_date][sport_type] = 0
+            daily_sport_counts[workout_date][sport_type] += 1
+
             scheduled_workouts.append({
                 'date': workout_date,
                 'sport_type': sport_type,
                 'duration_minutes': duration,
                 'workout_type': workout_type
             })
-        
+
+        # 1. Распределить длительные тренировки с конца недели (последние предпочтительные дни)
+        reversed_days = list(reversed(preferred_days))
+        day_index = 0
+
+        for sport_type, workout_type, duration in endurance_workouts:
+            placed = False
+            attempts = 0
+            max_attempts = len(preferred_days) * 3  # Максимум попыток для избежания бесконечного цикла
+
+            while not placed and attempts < max_attempts:
+                preferred_day = reversed_days[day_index % len(reversed_days)]
+                workout_date = monday_of_week + timedelta(days=preferred_day)
+
+                # Если дата в прошлом, перенести на следующую неделю
+                if workout_date < start_date:
+                    workout_date = workout_date + timedelta(days=7)
+
+                # Проверить, что дата не превышает дату соревнования
+                if workout_date >= competition_date:
+                    day_index += 1
+                    attempts += 1
+                    continue
+
+                # Проверить лимит тренировок данного вида спорта в этот день
+                if can_add_workout(workout_date, sport_type):
+                    add_workout(workout_date, sport_type, workout_type, duration)
+                    placed = True
+
+                day_index += 1
+                attempts += 1
+
+        # 2. Распределить остальные тренировки с начала недели, чередуя восстановительные и интервальные
+        day_index = 0
+
+        for sport_type, workout_type, duration in alternated_workouts:
+            placed = False
+            attempts = 0
+            max_attempts = len(preferred_days) * 3
+
+            while not placed and attempts < max_attempts:
+                preferred_day = preferred_days[day_index % len(preferred_days)]
+                workout_date = monday_of_week + timedelta(days=preferred_day)
+
+                # Если дата в прошлом, перенести на следующую неделю
+                if workout_date < start_date:
+                    workout_date = workout_date + timedelta(days=7)
+
+                # Проверить, что дата не превышает дату соревнования
+                if workout_date >= competition_date:
+                    day_index += 1
+                    attempts += 1
+                    continue
+
+                # Проверить лимит тренировок данного вида спорта в этот день
+                if can_add_workout(workout_date, sport_type):
+                    add_workout(workout_date, sport_type, workout_type, duration)
+                    placed = True
+
+                day_index += 1
+                attempts += 1
+
         return scheduled_workouts
     
     def get_plan_by_uin(self, uin: str) -> TrainingPlan:

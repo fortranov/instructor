@@ -1,9 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(docker-compose logs:*)",
-      "Bash(sqlite3:*)",
-      "Bash(python:*)"
+      "Bash(git push)",
+      "Bash(git restore:*)",
+      "Bash(tree:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(python test_schedule.py:*)",
+      "Bash(dir:*)",
+      "Bash(python test_schedule_simple.py:*)"
     ],
     "deny": [],
     "ask": []

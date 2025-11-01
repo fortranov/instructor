@@ -133,8 +133,9 @@ class TrainingTables:
         elif competition_type == CompetitionType.SWIMMING:
             return [SportType.SWIMMING]
         elif competition_type in [CompetitionType.TRIATHLON_SPRINT, CompetitionType.TRIATHLON_OLYMPIC, CompetitionType.TRIATHLON_IRONMAN]:
-            return [SportType.SWIMMING, SportType.CYCLING, SportType.RUNNING]
-        
+            # Для триатлона: сначала бег, потом велосипед, потом плавание
+            return [SportType.RUNNING, SportType.CYCLING, SportType.SWIMMING]
+
         return [SportType.RUNNING]  # По умолчанию
     
     @staticmethod
