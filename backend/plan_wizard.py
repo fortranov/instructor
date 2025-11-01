@@ -140,22 +140,44 @@ def calculate_plan_complexity(
     
     return complexity
 
-def determine_competition_type(target_distance: str) -> CompetitionType:
+def determine_competition_type(target_distance: str, sport_type: str = None) -> CompetitionType:
     """
-    Определяет тип соревнования на основе целевой дистанции
-    
+    Определяет тип соревнования на основе целевой дистанции и вида спорта
+
     Args:
-        target_distance: Целевая дистанция
-        
+        target_distance: Целевая дистанция (например, '5k', '10k', '21k', '42k' или числовое значение для плавания/велосипеда)
+        sport_type: Вид спорта ('running', 'cycling', 'swimming', 'triathlon')
+
     Returns:
         CompetitionType: Тип соревнования
     """
-    
-    distance_mapping = {
-        '5k': CompetitionType.RUN_10K,  # Используем 10K как ближайший
-        '10k': CompetitionType.RUN_10K,
-        '21k': CompetitionType.RUN_HALF_MARATHON,
-        '42k': CompetitionType.RUN_MARATHON,
-    }
-    
-    return distance_mapping.get(target_distance, CompetitionType.RUN_10K)
+
+    # Для триатлона определяем тип на основе дистанции
+    if sport_type == 'triathlon':
+        # Можно сделать более гибкую логику на основе target_distance
+        # Пока используем TRIATHLON_OLYMPIC как наиболее распространенный
+        triathlon_mapping = {
+            '5k': CompetitionType.TRIATHLON_SPRINT,
+            '10k': CompetitionType.TRIATHLON_SPRINT,
+            '21k': CompetitionType.TRIATHLON_OLYMPIC,
+            '42k': CompetitionType.TRIATHLON_IRONMAN,
+        }
+        return triathlon_mapping.get(target_distance, CompetitionType.TRIATHLON_OLYMPIC)
+
+    # Для плавания
+    elif sport_type == 'swimming':
+        return CompetitionType.SWIMMING
+
+    # Для велосипеда
+    elif sport_type == 'cycling':
+        return CompetitionType.CYCLING
+
+    # Для бега (по умолчанию)
+    else:
+        distance_mapping = {
+            '5k': CompetitionType.RUN_10K,  # Используем 10K как ближайший
+            '10k': CompetitionType.RUN_10K,
+            '21k': CompetitionType.RUN_HALF_MARATHON,
+            '42k': CompetitionType.RUN_MARATHON,
+        }
+        return distance_mapping.get(target_distance, CompetitionType.RUN_10K)

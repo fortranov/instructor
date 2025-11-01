@@ -136,6 +136,7 @@ export interface WorkoutCompletionMarkResponse {
 }
 
 export interface PlanWizardRequest {
+  sport_type?: string;
   weekly_distance: string;
   comfortable_pace: string;
   target_distance: string;

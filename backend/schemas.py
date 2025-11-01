@@ -92,6 +92,7 @@ class WorkoutDateUpdate(BaseModel):
 
 # Схемы для мастера создания планов
 class PlanWizardRequest(BaseModel):
+    sport_type: Optional[str] = Field(None, description="Вид спорта (running, cycling, swimming, triathlon)")
     weekly_distance: str = Field(..., description="Недельный километраж")
     comfortable_pace: str = Field(..., description="Комфортный темп бега")
     target_distance: str = Field(..., description="Целевая дистанция")

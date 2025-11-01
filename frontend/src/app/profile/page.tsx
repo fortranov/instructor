@@ -306,6 +306,7 @@ export default function ProfilePage() {
 
     try {
       const wizardRequest: PlanWizardRequest = {
+        sport_type: wizardData.sportType,
         weekly_distance: wizardData.weeklyDistance,
         comfortable_pace: wizardData.comfortablePace,
         target_distance: wizardData.targetDistance,

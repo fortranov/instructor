@@ -141,23 +141,31 @@ async def create_plan_with_wizard(
             has_specific_goal=wizard_data.has_specific_goal
         )
         
-        # Определяем тип соревнования
-        competition_type = determine_competition_type(wizard_data.target_distance)
-        
+        # Определяем тип соревнования на основе вида спорта и дистанции
+        competition_type = determine_competition_type(wizard_data.target_distance, wizard_data.sport_type)
+
+        # Для плавания и велосипеда сохраняем дистанцию
+        competition_distance = None
+        if wizard_data.sport_type in ['swimming', 'cycling']:
+            try:
+                competition_distance = float(wizard_data.target_distance)
+            except (ValueError, TypeError):
+                competition_distance = None
+
         # Обновляем данные пользователя с информацией о соревновании и предпочтительными днями
         current_user.competition_date = wizard_data.competition_date
         current_user.competition_type = competition_type
         current_user.preferred_workout_days = json.dumps(wizard_data.preferred_workout_days)
         current_user.updated_at = datetime.utcnow()
         db.commit()
-        
+
         # Создаем план тренировок
         plan_data = TrainingPlanCreate(
             uin=current_user.uin,
             complexity=complexity,
             competition_date=wizard_data.competition_date,
             competition_type=competition_type,
-            competition_distance=None  # Для бега дистанция не нужна
+            competition_distance=competition_distance
         )
         
         generator = PlanGenerator(db)
