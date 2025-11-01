@@ -255,7 +255,13 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
       case 'pace':
         return formData.comfortablePace !== '';
       case 'target-distance':
-        return formData.targetDistance !== '';
+        if (formData.targetDistance === '') return false;
+        // Для плавания и велосипеда проверяем, что введено положительное число
+        if (formData.sportType === 'swimming' || formData.sportType === 'cycling') {
+          const distance = parseFloat(formData.targetDistance);
+          return !isNaN(distance) && distance > 0;
+        }
+        return true;
       case 'competition-date':
         return formData.hasSpecificGoal ? formData.competitionDate !== '' : true;
       case 'workout-days':
@@ -537,41 +543,63 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
                 <h3 className="text-lg font-semibold text-center mb-6">
                   {getTargetDistanceQuestion()}
                 </h3>
-                <div className="space-y-3">
-                  {getTargetDistanceOptions().map((option) => (
-                    <label
-                      key={option.value}
-                      className={`
-                        flex items-center p-3 border rounded-lg cursor-pointer transition-all
-                        ${formData.targetDistance === option.value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }
-                      `}
-                    >
-                      <input
-                        type="radio"
-                        name="targetDistance"
-                        value={option.value}
-                        checked={formData.targetDistance === option.value}
-                        onChange={(e) => setFormData({ ...formData, targetDistance: e.target.value })}
-                        className="sr-only"
-                      />
-                      <div className={`
-                        w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center
-                        ${formData.targetDistance === option.value
-                          ? 'border-blue-500'
-                          : 'border-gray-300'
-                        }
-                      `}>
-                        {formData.targetDistance === option.value && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500" />
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">{option.label}</span>
+
+                {/* Для плавания и велосипеда - текстовое поле */}
+                {(formData.sportType === 'swimming' || formData.sportType === 'cycling') ? (
+                  <div>
+                    <label htmlFor="targetDistance" className="block text-sm font-medium text-gray-700 mb-2">
+                      {formData.sportType === 'swimming'
+                        ? 'Укажите дистанцию в метрах'
+                        : 'Укажите дистанцию в километрах'}
                     </label>
-                  ))}
-                </div>
+                    <Input
+                      id="targetDistance"
+                      type="number"
+                      min="1"
+                      placeholder={formData.sportType === 'swimming' ? 'Например: 1500' : 'Например: 40'}
+                      value={formData.targetDistance}
+                      onChange={(e) => setFormData({ ...formData, targetDistance: e.target.value })}
+                      className="w-full"
+                    />
+                  </div>
+                ) : (
+                  /* Для бега и триатлона - выбор из списка */
+                  <div className="space-y-3">
+                    {getTargetDistanceOptions().map((option) => (
+                      <label
+                        key={option.value}
+                        className={`
+                          flex items-center p-3 border rounded-lg cursor-pointer transition-all
+                          ${formData.targetDistance === option.value
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <input
+                          type="radio"
+                          name="targetDistance"
+                          value={option.value}
+                          checked={formData.targetDistance === option.value}
+                          onChange={(e) => setFormData({ ...formData, targetDistance: e.target.value })}
+                          className="sr-only"
+                        />
+                        <div className={`
+                          w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center
+                          ${formData.targetDistance === option.value
+                            ? 'border-blue-500'
+                            : 'border-gray-300'
+                          }
+                        `}>
+                          {formData.targetDistance === option.value && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          )}
+                        </div>
+                        <span className="text-sm font-medium">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
