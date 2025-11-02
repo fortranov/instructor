@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import apiClient from '@/lib/api';
 import { TariffPriceResponse } from '@/types/api';
 import { getErrorMessage } from '@/lib/utils';

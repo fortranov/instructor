@@ -764,7 +764,7 @@ export default function ProfilePage() {
                             </span>
                           </label>
                           <p className="text-xs text-gray-500 mt-1 ml-6">
-                            Добавить тренировки по виду спорта "Силовая" в план тренировок
+                            Добавить тренировки по виду спорта &ldquo;Силовая&rdquo; в план тренировок
                           </p>
                         </div>
 
