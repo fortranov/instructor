@@ -40,6 +40,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [preferredWorkoutDays, setPreferredWorkoutDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [hasStrengthTraining, setHasStrengthTraining] = useState(false);
 
   // Данные плана тренировок
   const [complexity, setComplexity] = useState(500);
@@ -81,6 +82,7 @@ export default function ProfilePage() {
       setLastName(user.last_name || '');
       setEmail(user.email);
       setPreferredWorkoutDays(user.preferred_workout_days || [0, 1, 2, 3, 4, 5, 6]);
+      setHasStrengthTraining(user.has_strength_training || false);
     }
   }, [user]);
 
@@ -245,12 +247,19 @@ export default function ProfilePage() {
     setLoading(true);
 
     try {
-      if (!arePreferredDaysEqual(preferredWorkoutDays, user.preferred_workout_days)) {
+      // Обновляем настройки пользователя если они изменились
+      const needsUpdate =
+        !arePreferredDaysEqual(preferredWorkoutDays, user.preferred_workout_days) ||
+        hasStrengthTraining !== (user.has_strength_training || false);
+
+      if (needsUpdate) {
         const updatedUser = await apiClient.updateCurrentUser({
           preferred_workout_days: preferredWorkoutDays,
+          has_strength_training: hasStrengthTraining,
         });
         updateUser(updatedUser);
         setPreferredWorkoutDays(updatedUser.preferred_workout_days || [0, 1, 2, 3, 4, 5, 6]);
+        setHasStrengthTraining(updatedUser.has_strength_training || false);
       }
 
       const planData = {
@@ -739,6 +748,23 @@ export default function ProfilePage() {
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
                             Выберите дни, в которые вы предпочитаете тренироваться
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={hasStrengthTraining}
+                              onChange={(e) => setHasStrengthTraining(e.target.checked)}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              Включить силовые тренировки в план
+                            </span>
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1 ml-6">
+                            Добавить тренировки по виду спорта "Силовая" в план тренировок
                           </p>
                         </div>
 

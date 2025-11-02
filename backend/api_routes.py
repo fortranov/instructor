@@ -49,7 +49,7 @@ def create_user_response(user: User) -> UserResponse:
             preferred_days = json.loads(user.preferred_workout_days)
         except (json.JSONDecodeError, TypeError):
             preferred_days = [0, 1, 2, 3, 4, 5, 6]  # Fallback к значению по умолчанию (все дни)
-    
+
     return UserResponse(
         id=user.id,
         uin=user.uin,
@@ -58,6 +58,7 @@ def create_user_response(user: User) -> UserResponse:
         last_name=user.last_name,
         is_active=bool(user.is_active),
         preferred_workout_days=preferred_days,
+        has_strength_training=bool(user.has_strength_training),
         created_at=user.created_at
     )
 
@@ -462,7 +463,9 @@ async def update_current_user(
             )
         import json
         current_user.preferred_workout_days = json.dumps(user_update.preferred_workout_days)
-    
+    if user_update.has_strength_training is not None:
+        current_user.has_strength_training = 1 if user_update.has_strength_training else 0
+
     current_user.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(current_user)
