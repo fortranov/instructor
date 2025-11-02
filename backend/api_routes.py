@@ -192,7 +192,7 @@ async def get_weekly_workout_count(
 ):
     """
     Получить максимальное количество тренировок в неделю на основе данных мастера.
-    
+
     Этот endpoint используется для расчета количества тренировок перед финальным
     шагом выбора предпочтительных дней в мастере планов.
     """
@@ -205,15 +205,18 @@ async def get_weekly_workout_count(
             competition_date=workout_count_data.competition_date,
             has_specific_goal=workout_count_data.has_specific_goal
         )
-        
-        # Определяем тип соревнования
-        competition_type = determine_competition_type(workout_count_data.target_distance)
-        
+
+        # Определяем тип соревнования с учетом вида спорта
+        competition_type = determine_competition_type(
+            workout_count_data.target_distance,
+            workout_count_data.sport_type
+        )
+
         # Получаем виды спорта для этого типа соревнования
         from database import CompetitionType, SportType
         training_tables = TrainingTables()
         sport_types = training_tables.get_sport_types_for_competition(competition_type)
-        
+
         # Рассчитываем максимальное количество тренировок в неделю
         if len(sport_types) == 1:
             # Для одного вида спорта
@@ -226,13 +229,16 @@ async def get_weekly_workout_count(
                 frequency = TrainingTables.get_weekly_frequency(sport_type, complexity)
                 frequency = max(2, frequency // 2)  # Меньше тренировок каждого вида для триатлона
                 max_weekly_workouts += frequency
-        
+
+        # Ограничиваем максимум 6 днями в неделю
+        max_weekly_workouts = min(max_weekly_workouts, 6)
+
         return WeeklyWorkoutCountResponse(
             max_weekly_workouts=max_weekly_workouts,
             complexity=complexity,
             competition_type=competition_type
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

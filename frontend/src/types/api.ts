@@ -192,6 +192,7 @@ export interface AppSettingUpdate {
 }
 
 export interface WeeklyWorkoutCountRequest {
+  sport_type?: string;
   weekly_distance: string;
   comfortable_pace: string;
   target_distance: string;

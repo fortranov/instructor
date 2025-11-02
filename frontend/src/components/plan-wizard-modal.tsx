@@ -126,6 +126,7 @@ export default function PlanWizardModal({ isOpen, onClose, onSubmit, loading = f
         setLoadingWorkoutCount(true);
         try {
           const response = await apiClient.getWeeklyWorkoutCount({
+            sport_type: formData.sportType,
             weekly_distance: formData.weeklyDistance,
             comfortable_pace: formData.comfortablePace,
             target_distance: formData.targetDistance,
