@@ -749,6 +749,13 @@ export default function ProfilePage() {
                           <p className="text-xs text-gray-500 mt-1">
                             Выберите дни, в которые вы предпочитаете тренироваться
                           </p>
+                          {existingPlan && !arePreferredDaysEqual(preferredWorkoutDays, user?.preferred_workout_days) && (
+                            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                              <p className="text-xs text-amber-800">
+                                ⚠️ Для применения изменений дней тренировок нужно пересоздать план
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         <div>
@@ -766,6 +773,13 @@ export default function ProfilePage() {
                           <p className="text-xs text-gray-500 mt-1 ml-6">
                             Добавить тренировки по виду спорта &ldquo;Силовая&rdquo; в план тренировок
                           </p>
+                          {existingPlan && hasStrengthTraining !== (user?.has_strength_training || false) && (
+                            <div className="mt-2 ml-6 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                              <p className="text-xs text-amber-800">
+                                ⚠️ Для применения изменений нужно пересоздать план
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         <Button type="submit" disabled={loading || planLoading} className="w-full">
