@@ -17,7 +17,10 @@
       "Bash(python migrate_add_strength_training.py:*)",
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash($null)",
+      "Bash(Select-String -Pattern \"STRENGTH|check_strength\")",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []
