@@ -20,7 +20,8 @@
       "Bash(python:*)",
       "Bash($null)",
       "Bash(Select-String -Pattern \"STRENGTH|check_strength\")",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []
