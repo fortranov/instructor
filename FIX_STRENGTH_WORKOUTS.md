@@ -34,18 +34,19 @@ docker-compose restart backend
 docker-compose ps
 ```
 
-### Шаг 2: Запустить скрипт диагностики
+### Шаг 2: Запустить скрипт исправления
 
 ```bash
-# Запустить скрипт внутри backend контейнера
-docker exec -it backend python fix_add_strength_workouts.py
+# Скопировать скрипт в контейнер
+docker cp backend/fix_strength_complete.py backend:/app/fix_strength_complete.py
 
-# Скрипт покажет:
-# - Какие пользователи имеют планы
-# - Значение has_strength_training для каждого пользователя
-# - Текущую фазу подготовки
-# - Количество существующих силовых тренировок
-# - И АВТОМАТИЧЕСКИ добавит недостающие силовые тренировки
+# Запустить скрипт
+docker exec -it backend python /app/fix_strength_complete.py
+
+# Скрипт выполнит:
+# 1. Установит has_strength_training=1 для пользователей с планами триатлона
+# 2. Добавит силовые тренировки в существующие планы (даже в занятые дни)
+# 3. Покажет подробную информацию о процессе
 ```
 
 ### Шаг 3: Проверить результат
