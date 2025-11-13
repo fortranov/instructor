@@ -123,8 +123,9 @@ class PlanGenerator:
 
             workouts.extend(week_workouts)
 
-            # Добавить силовую тренировку в фазах base и build, если пользователь указал возможность
-            if has_strength_training and phase in ['base', 'build']:
+            # Добавить силовую тренировку в фазах base, build и peak, если пользователь указал возможность
+            # Не добавляем силовые только в фазе taper (за 2 недели до соревнования)
+            if has_strength_training and phase in ['base', 'build', 'peak']:
                 strength_workout = self._add_strength_workout(
                     current_date, plan.competition_date, user_preferred_days, week_workouts
                 )
