@@ -437,17 +437,20 @@ class PlanGenerator:
         days_since_monday = start_date.weekday()
         monday_of_week = start_date - timedelta(days=days_since_monday)
 
-        # Найти дни, в которые уже запланированы тренировки
-        occupied_days = set()
+        # Группировка тренировок по дням недели
+        workouts_by_day = {}
         for workout in week_workouts:
             workout_date = workout['date']
             if isinstance(workout_date, str):
                 workout_date = date.fromisoformat(workout_date)
-            occupied_days.add(workout_date.weekday())
+            day_of_week = workout_date.weekday()
+            if day_of_week not in workouts_by_day:
+                workouts_by_day[day_of_week] = []
+            workouts_by_day[day_of_week].append(workout)
 
-        # Найти первый свободный предпочтительный день
+        # СТРАТЕГИЯ 1: Найти свободный предпочтительный день
         for preferred_day in preferred_days:
-            if preferred_day not in occupied_days:
+            if preferred_day not in workouts_by_day:
                 workout_date = monday_of_week + timedelta(days=preferred_day)
 
                 # Если дата в прошлом, перенести на следующую неделю
@@ -459,9 +462,43 @@ class PlanGenerator:
                     return {
                         'date': workout_date,
                         'sport_type': SportType.STRENGTH,
-                        'duration_minutes': 50,  # Фиксированная длительность 50 минут
-                        'workout_type': WorkoutType.RECOVERY  # Используем RECOVERY для силовых
+                        'duration_minutes': 50,
+                        'workout_type': WorkoutType.RECOVERY
                     }
+
+        # СТРАТЕГИЯ 2: Если все дни заняты, добавить в день с минимальной нагрузкой
+        # Это нормально для триатлона - можно делать силовую и бег/плавание/велосипед в один день
+        min_duration = float('inf')
+        best_day = None
+        best_date = None
+
+        for preferred_day in preferred_days:
+            workout_date = monday_of_week + timedelta(days=preferred_day)
+
+            # Проверить условия даты
+            if workout_date < start_date:
+                workout_date = workout_date + timedelta(days=7)
+
+            if workout_date >= competition_date:
+                continue
+
+            # Рассчитать суммарную продолжительность тренировок в этот день
+            day_duration = sum(w['duration_minutes'] for w in workouts_by_day.get(preferred_day, []))
+
+            # Найти день с минимальной нагрузкой
+            if day_duration < min_duration:
+                min_duration = day_duration
+                best_day = preferred_day
+                best_date = workout_date
+
+        # Если нашли подходящий день, добавляем силовую
+        if best_date:
+            return {
+                'date': best_date,
+                'sport_type': SportType.STRENGTH,
+                'duration_minutes': 50,
+                'workout_type': WorkoutType.RECOVERY
+            }
 
         return None
 
