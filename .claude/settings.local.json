@@ -23,7 +23,9 @@
       "Bash(nul)",
       "Bash(docker ps:*)",
       "Bash(git push:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": [],
     "ask": []

@@ -90,13 +90,5 @@ async def create_custom_workout(
     db.commit()
     db.refresh(new_workout)
 
-    # Вернуть созданную тренировку
-    return WorkoutResponse(
-        id=new_workout.id,
-        date=new_workout.date,
-        sport_type=new_workout.sport_type,
-        duration_minutes=new_workout.duration_minutes,
-        workout_type=new_workout.workout_type,
-        is_completed=False,
-        is_custom=True
-    )
+    # Вернуть созданную тренировку (Pydantic v2 автоматически конвертирует)
+    return new_workout

@@ -4,8 +4,8 @@
 """
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, TYPE_CHECKING
+from pydantic import BaseModel, Field, EmailStr, field_validator
+from typing import List, Optional, TYPE_CHECKING, Any
 from datetime import date, datetime
 from database import SportType, WorkoutType, CompetitionType, TariffType
 
@@ -29,6 +29,16 @@ class WorkoutResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @field_validator('is_custom', mode='before')
+    @classmethod
+    def convert_is_custom(cls, v: Any) -> bool:
+        """Конвертируем Integer (из SQLite) в bool"""
+        if isinstance(v, int):
+            return bool(v)
+        if v is None:
+            return False
+        return v
 
 # Схема плана тренировок (базовая, без workouts)
 class TrainingPlanResponse(BaseModel):
