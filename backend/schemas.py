@@ -4,8 +4,8 @@
 """
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import List, Optional, TYPE_CHECKING, Any
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, TYPE_CHECKING
 from datetime import date, datetime
 from database import SportType, WorkoutType, CompetitionType, TariffType
 
@@ -29,16 +29,6 @@ class WorkoutResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-    @field_validator('is_custom', mode='before')
-    @classmethod
-    def convert_is_custom(cls, v: Any) -> bool:
-        """Конвертируем Integer (из SQLite) в bool"""
-        if isinstance(v, int):
-            return bool(v)
-        if v is None:
-            return False
-        return v
 
 # Схема плана тренировок (базовая, без workouts)
 class TrainingPlanResponse(BaseModel):
@@ -137,9 +127,9 @@ class WeeklyWorkoutCountResponse(BaseModel):
 class CustomWorkoutCreate(BaseModel):
     uin: str = Field(..., description="Уникальный идентификатор пользователя")
     date: date = Field(..., description="Дата тренировки")
-    sport_type: SportType = Field(..., description="Вид спорта")
+    sport_type: str = Field(..., description="Вид спорта: running, cycling, swimming, strength")
     duration_minutes: int = Field(..., ge=1, le=600, description="Длительность в минутах (1-600)")
-    workout_type: WorkoutType = Field(..., description="Тип тренировки")
+    workout_type: str = Field(..., description="Тип тренировки: endurance, interval, recovery")
 
 # Простые схемы для ответов (без вложенных коллекций)
 class SimpleWorkoutsByDateResponse(BaseModel):

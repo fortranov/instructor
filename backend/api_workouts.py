@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any, List
 from datetime import date
 
-from database import get_db, User, Workout, WorkoutCompletionMark, TrainingPlan
+from database import get_db, User, Workout, WorkoutCompletionMark, TrainingPlan, SportType, WorkoutType
 from plan_generator import PlanGenerator
 from schemas import SimpleWorkoutsByDateResponse, CustomWorkoutCreate, WorkoutResponse
 
@@ -76,13 +76,23 @@ async def create_custom_workout(
             detail="У пользователя нет плана тренировок. Создайте план сначала."
         )
 
+    # Конвертируем строковые значения в Enum типы
+    try:
+        sport_type_enum = SportType(workout_data.sport_type)
+        workout_type_enum = WorkoutType(workout_data.workout_type)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Неверный тип спорта или тренировки: {str(e)}"
+        )
+
     # Создать новую тренировку
     new_workout = Workout(
         plan_id=plan.id,
         date=workout_data.date,
-        sport_type=workout_data.sport_type,
+        sport_type=sport_type_enum,
         duration_minutes=workout_data.duration_minutes,
-        workout_type=workout_data.workout_type,
+        workout_type=workout_type_enum,
         is_custom=1  # SQLite использует 1 для True
     )
 
@@ -90,5 +100,14 @@ async def create_custom_workout(
     db.commit()
     db.refresh(new_workout)
 
-    # Вернуть созданную тренировку (Pydantic v2 автоматически конвертирует)
-    return new_workout
+    # Вернуть созданную тренировку, явно создавая объект ответа
+    # Конвертируем is_custom из Integer в bool
+    return {
+        "id": new_workout.id,
+        "date": new_workout.date,
+        "sport_type": new_workout.sport_type,
+        "duration_minutes": new_workout.duration_minutes,
+        "workout_type": new_workout.workout_type,
+        "is_completed": False,
+        "is_custom": bool(new_workout.is_custom) if new_workout.is_custom else False
+    }
