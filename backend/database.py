@@ -111,15 +111,16 @@ class TrainingPlan(Base):
 # Модель тренировки
 class Workout(Base):
     __tablename__ = "workouts"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=False)
     date = Column(Date, nullable=False)
     sport_type = Column(Enum(SportType), nullable=False)
     duration_minutes = Column(Integer, nullable=False)
     workout_type = Column(Enum(WorkoutType), nullable=False)
+    is_custom = Column(Integer, default=0)  # SQLite doesn't have Boolean, 0 = автоматическая, 1 = пользовательская
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Связь с планом
     plan = relationship("TrainingPlan", back_populates="workouts")
     # Связь с отметками выполнения
@@ -359,6 +360,34 @@ def ensure_database_compatibility():
                 print("[OK] All required columns are present in tariffs table")
         else:
             print("[WARN] Tariffs table does not exist yet, will be created by SQLAlchemy")
+
+        # Проверяем и обновляем таблицу workouts
+        print("\nChecking workouts table...")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='workouts';")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(workouts);")
+            workouts_columns = cursor.fetchall()
+            workouts_column_names = [col[1] for col in workouts_columns]
+
+            print(f"Current columns in workouts table: {workouts_column_names}")
+
+            # Проверяем наличие поля is_custom
+            if 'is_custom' not in workouts_column_names:
+                print("Adding is_custom column to workouts table...")
+                try:
+                    cursor.execute("ALTER TABLE workouts ADD COLUMN is_custom INTEGER DEFAULT 0;")
+                    conn.commit()
+                    print("[OK] Added is_custom column to workouts table")
+                except sqlite3.OperationalError as e:
+                    if "duplicate column name" in str(e).lower():
+                        print("[WARN] Column is_custom already exists")
+                    else:
+                        print(f"[ERROR] Error adding is_custom column: {e}")
+                        raise
+            else:
+                print("[OK] is_custom column already exists in workouts table")
+        else:
+            print("[WARN] Workouts table does not exist yet, will be created by SQLAlchemy")
 
         conn.close()
 

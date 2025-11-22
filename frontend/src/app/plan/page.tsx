@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Navigation from '@/components/navigation';
 import Calendar from '@/components/calendar';
 import apiClient from '@/lib/api';
-import { Workout, TrainingPlan, UserTariffResponse } from '@/types/api';
+import { Workout, TrainingPlan, UserTariffResponse, SportType, WorkoutType } from '@/types/api';
 import { getErrorMessage, getCompetitionTypeLabel } from '@/lib/utils';
 import { RotateCcw } from 'lucide-react';
 // import { format } from 'date-fns';
@@ -156,7 +156,7 @@ export default function PlanPage() {
 
   const handleWorkoutToggle = async (workoutId: number, date: string, isCompleted: boolean) => {
     if (!user?.uin) return;
-    
+
     try {
       if (isCompleted) {
         // Отметить как выполненную
@@ -167,11 +167,11 @@ export default function PlanPage() {
         // Убрать отметку о выполнении
         await apiClient.unmarkWorkoutCompleted(workoutId);
       }
-      
+
       // Обновить локальное состояние тренировок
-      setWorkouts(prevWorkouts => 
-        prevWorkouts.map(workout => 
-          workout.id === workoutId 
+      setWorkouts(prevWorkouts =>
+        prevWorkouts.map(workout =>
+          workout.id === workoutId
             ? { ...workout, is_completed: isCompleted }
             : workout
         )
@@ -179,6 +179,26 @@ export default function PlanPage() {
     } catch (err) {
       console.error('Ошибка при переключении состояния тренировки:', getErrorMessage(err));
       alert('Ошибка при переключении состояния тренировки: ' + getErrorMessage(err));
+    }
+  };
+
+  const handleCustomWorkoutCreate = async (date: string, sportType: SportType, durationMinutes: number, workoutType: WorkoutType) => {
+    if (!user?.uin) return;
+
+    try {
+      const newWorkout = await apiClient.createCustomWorkout({
+        uin: user.uin,
+        date: date,
+        sport_type: sportType,
+        duration_minutes: durationMinutes,
+        workout_type: workoutType
+      });
+
+      // Добавить новую тренировку в локальное состояние
+      setWorkouts(prevWorkouts => [...prevWorkouts, newWorkout]);
+    } catch (err) {
+      console.error('Ошибка при создании пользовательской тренировки:', getErrorMessage(err));
+      throw new Error(getErrorMessage(err));
     }
   };
 
@@ -289,6 +309,7 @@ export default function PlanPage() {
                 onMonthChange={handleMonthChange}
                 onWorkoutMove={handleWorkoutMove}
                 onWorkoutToggle={handleWorkoutToggle}
+                onCustomWorkoutCreate={handleCustomWorkoutCreate}
                 loading={loading}
                 userTariff={userTariff}
               />

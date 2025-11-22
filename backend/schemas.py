@@ -25,7 +25,8 @@ class WorkoutResponse(BaseModel):
     duration_minutes: int
     workout_type: WorkoutType
     is_completed: bool = Field(default=False, description="Отмечена ли тренировка как выполненная")
-    
+    is_custom: bool = Field(default=False, description="Является ли тренировка пользовательской")
+
     class Config:
         from_attributes = True
 
@@ -121,6 +122,14 @@ class WeeklyWorkoutCountResponse(BaseModel):
     max_weekly_workouts: int = Field(..., description="Максимальное количество тренировок в неделю")
     complexity: int = Field(..., description="Рассчитанная сложность плана")
     competition_type: CompetitionType = Field(..., description="Определенный тип соревнования")
+
+# Схема для создания пользовательской тренировки
+class CustomWorkoutCreate(BaseModel):
+    uin: str = Field(..., description="Уникальный идентификатор пользователя")
+    date: date = Field(..., description="Дата тренировки")
+    sport_type: SportType = Field(..., description="Вид спорта")
+    duration_minutes: int = Field(..., ge=1, le=600, description="Длительность в минутах (1-600)")
+    workout_type: WorkoutType = Field(..., description="Тип тренировки")
 
 # Простые схемы для ответов (без вложенных коллекций)
 class SimpleWorkoutsByDateResponse(BaseModel):

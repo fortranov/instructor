@@ -28,7 +28,9 @@ import {
   TariffPurchaseRequest,
   TariffPriceResponse,
   AppSettingResponse,
-  AppSettingUpdate
+  AppSettingUpdate,
+  CustomWorkoutCreate,
+  Workout
 } from '@/types/api';
 
 // Используем относительный путь - Next.js проксирует запросы к бэкенду
@@ -137,6 +139,10 @@ class ApiClient {
 
   async updateWorkoutDate(uin: string, workoutUpdate: WorkoutDateUpdate): Promise<{ message: string }> {
     return this.request<{ message: string }>('PUT', `/plans/${uin}/workouts/update-date`, workoutUpdate);
+  }
+
+  async createCustomWorkout(workoutData: CustomWorkoutCreate): Promise<Workout> {
+    return this.request<Workout>('POST', '/workouts/custom', workoutData);
   }
 
   // Методы получения справочных данных

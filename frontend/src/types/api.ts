@@ -53,6 +53,7 @@ export interface Workout {
   duration_minutes: number;
   workout_type: WorkoutType;
   is_completed?: boolean;
+  is_custom?: boolean;
 }
 
 export interface TrainingPlan {
@@ -136,6 +137,14 @@ export interface WorkoutCompletionMarkResponse {
   user_id: number;
   date: string;
   completed_at: string;
+}
+
+export interface CustomWorkoutCreate {
+  uin: string;
+  date: string;
+  sport_type: SportType;
+  duration_minutes: number;
+  workout_type: WorkoutType;
 }
 
 export interface PlanWizardRequest {

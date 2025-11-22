@@ -21,7 +21,9 @@
       "Bash($null)",
       "Bash(Select-String -Pattern \"STRENGTH|check_strength\")",
       "Bash(nul)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(git push:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

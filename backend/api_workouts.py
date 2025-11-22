@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any, List
 from datetime import date
 
-from database import get_db, User, Workout, WorkoutCompletionMark
+from database import get_db, User, Workout, WorkoutCompletionMark, TrainingPlan
 from plan_generator import PlanGenerator
-from schemas import SimpleWorkoutsByDateResponse
+from schemas import SimpleWorkoutsByDateResponse, CustomWorkoutCreate, WorkoutResponse
 
 # Создаем отдельный роутер для workout endpoints
 workouts_router = APIRouter()
@@ -30,10 +30,10 @@ async def get_workouts_by_date_range(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Начальная дата не может быть позже конечной даты"
         )
-    
+
     generator = PlanGenerator(db)
     workout_dicts = generator.get_workouts_by_date_range(uin, start_date, end_date)
-    
+
     # Преобразовать словари в простые объекты
     workouts = []
     for workout_dict in workout_dicts:
@@ -43,10 +43,60 @@ async def get_workouts_by_date_range(
             "sport_type": workout_dict['sport_type'].value,
             "duration_minutes": workout_dict['duration_minutes'],
             "workout_type": workout_dict['workout_type'].value,
-            "is_completed": workout_dict['is_completed']
+            "is_completed": workout_dict['is_completed'],
+            "is_custom": workout_dict.get('is_custom', False)
         })
-    
+
     return {
         "uin": uin,
         "workouts": workouts
     }
+
+@workouts_router.post("/workouts/custom", response_model=WorkoutResponse)
+async def create_custom_workout(
+    workout_data: CustomWorkoutCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Создать пользовательскую тренировку.
+    """
+    # Найти пользователя по uin
+    user = db.query(User).filter(User.uin == workout_data.uin).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пользователь не найден"
+        )
+
+    # Найти план пользователя
+    plan = db.query(TrainingPlan).filter(TrainingPlan.user_id == user.id).first()
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="У пользователя нет плана тренировок. Создайте план сначала."
+        )
+
+    # Создать новую тренировку
+    new_workout = Workout(
+        plan_id=plan.id,
+        date=workout_data.date,
+        sport_type=workout_data.sport_type,
+        duration_minutes=workout_data.duration_minutes,
+        workout_type=workout_data.workout_type,
+        is_custom=1  # SQLite использует 1 для True
+    )
+
+    db.add(new_workout)
+    db.commit()
+    db.refresh(new_workout)
+
+    # Вернуть созданную тренировку
+    return WorkoutResponse(
+        id=new_workout.id,
+        date=new_workout.date,
+        sport_type=new_workout.sport_type,
+        duration_minutes=new_workout.duration_minutes,
+        workout_type=new_workout.workout_type,
+        is_completed=False,
+        is_custom=True
+    )

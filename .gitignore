@@ -23,6 +23,7 @@ docker-compose.override.yml
 .idea/
 *.swp
 *.swo
+*nul
 
 # OS generated files
 .DS_Store

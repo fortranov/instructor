@@ -546,7 +546,8 @@ class PlanGenerator:
                 'sport_type': workout.sport_type,
                 'duration_minutes': workout.duration_minutes,
                 'workout_type': workout.workout_type,
-                'is_completed': completion_marks.get(workout.id, False)
+                'is_completed': completion_marks.get(workout.id, False),
+                'is_custom': bool(workout.is_custom) if hasattr(workout, 'is_custom') else False
             })
 
         return workout_responses

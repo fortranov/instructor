@@ -5,11 +5,12 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { ru } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Workout, SportType, UserTariffResponse } from '@/types/api';
+import { Workout, SportType, UserTariffResponse, WorkoutType } from '@/types/api';
 import { formatDuration, getSportIcon, getSportColor, getSportLabel, getWorkoutTypeLabel, getWorkoutTypeColor } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Move } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Move, Plus } from 'lucide-react';
 import WorkoutModal from './workout-modal';
 import BlurredWorkoutCard from './blurred-workout-card';
+import CustomWorkoutModal from './custom-workout-modal';
 import {
   DndContext,
   DragEndEvent,
@@ -30,6 +31,7 @@ interface CalendarProps {
   onMonthChange: (startDate: string, endDate: string) => void;
   onWorkoutMove?: (workoutId: number, newDate: string) => Promise<void>;
   onWorkoutToggle?: (workoutId: number, date: string, isCompleted: boolean) => Promise<void>;
+  onCustomWorkoutCreate?: (date: string, sportType: SportType, durationMinutes: number, workoutType: WorkoutType) => Promise<void>;
   loading?: boolean;
   userTariff?: UserTariffResponse | null;
 }
@@ -101,12 +103,14 @@ function DroppableDay({
   );
 }
 
-export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWorkoutToggle, loading = false, userTariff }: CalendarProps) {
+export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWorkoutToggle, onCustomWorkoutCreate, loading = false, userTariff }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [draggedWorkoutWeek, setDraggedWorkoutWeek] = useState<Date | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCustomWorkoutModalOpen, setIsCustomWorkoutModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   // Функция для определения доступности тренировки на основе тарифа
   const isWorkoutAccessible = (workoutDate: string): boolean => {
@@ -247,9 +251,30 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
     setIsModalOpen(true);
   };
 
+  const handleAddWorkoutClick = (date: Date) => {
+    setSelectedDate(format(date, 'yyyy-MM-dd'));
+    setIsCustomWorkoutModalOpen(true);
+  };
+
+  const handleCustomWorkoutSave = async (sportType: SportType, durationMinutes: number, workoutType: WorkoutType) => {
+    if (!onCustomWorkoutCreate || !selectedDate) return;
+
+    try {
+      await onCustomWorkoutCreate(selectedDate, sportType, durationMinutes, workoutType);
+    } catch (error) {
+      console.error('Ошибка при создании пользовательской тренировки:', error);
+      throw error;
+    }
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedWorkout(null);
+  };
+
+  const handleCloseCustomWorkoutModal = () => {
+    setIsCustomWorkoutModalOpen(false);
+    setSelectedDate('');
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -362,7 +387,7 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                     return (
                       <DroppableDay key={`${weekIndex}-${dayIndex}`} day={day} isDropAllowed={isDropAllowed}>
                         <div className={`
-                          relative
+                          relative group
                           ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''}
                           ${isToday ? 'bg-blue-50 border-blue-200' : ''}
                         `}>
@@ -475,6 +500,15 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
                               );
                             })}
                           </div>
+
+                          {/* Кнопка добавления тренировки */}
+                          <button
+                            onClick={() => handleAddWorkoutClick(day)}
+                            className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-gray-400 hover:text-blue-500 hover:border-blue-400"
+                            title="Добавить тренировку"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
                         </div>
                       </DroppableDay>
                     );
@@ -541,6 +575,14 @@ export default function Calendar({ workouts, onMonthChange, onWorkoutMove, onWor
         workout={selectedWorkout}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+      />
+
+      {/* Модальное окно для создания пользовательской тренировки */}
+      <CustomWorkoutModal
+        date={selectedDate}
+        isOpen={isCustomWorkoutModalOpen}
+        onClose={handleCloseCustomWorkoutModal}
+        onSave={handleCustomWorkoutSave}
       />
     </DndContext>
   );
